@@ -10,10 +10,10 @@ Note the Google Drive quirk from the root cc-projects CLAUDE.md: directories syn
 
 ## Acceptance criteria
 
-- [ ] `pnpm dev` starts backend and frontend; the page renders a value that round-trips through Fastify → Drizzle → SQLite
-- [ ] `pnpm test` runs a passing test suite covering the health path
-- [ ] Drizzle migrations set up and applied automatically on startup
-- [ ] Git repository initialized with a sensible .gitignore (SQLite file, node_modules, .DS_Store, Drive lock files)
+- [x] `pnpm dev` starts backend and frontend; the page renders a value that round-trips through Fastify → Drizzle → SQLite
+- [x] `pnpm test` runs a passing test suite covering the health path
+- [x] Drizzle migrations set up and applied automatically on startup
+- [x] Git repository initialized with a sensible .gitignore (SQLite file, node_modules, .DS_Store, Drive lock files)
 
 ## Blocked by
 
