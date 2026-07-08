@@ -1,0 +1,18 @@
+{
+  "name": "pricing-app",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "esbuild"
+    ]
+  },
+  "scripts": {
+    "dev": "pnpm --parallel -r dev",
+    "test": "pnpm -r test",
+    "build": "pnpm -r build"
+  }
+}
