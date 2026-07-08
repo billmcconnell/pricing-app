@@ -1,6 +1,6 @@
 # 01 — Walking skeleton
 
-Status: ready-for-agent
+Status: done
 
 ## What to build
 
@@ -18,3 +18,7 @@ Note the Google Drive quirk from the root cc-projects CLAUDE.md: directories syn
 ## Blocked by
 
 None - can start immediately
+
+## Comments
+
+**2026-07-08 (Claude):** Completed in commit a2266b0. pnpm workspace (`server`, `web`); health path verified live: React page at localhost:5173 renders app name fetched via Vite proxy from Fastify, read from the seeded SQLite `app_meta` table. `pnpm dev` and `pnpm test` (5 tests, all green) both work from the root. Native build scripts for better-sqlite3/esbuild are allowlisted via `pnpm.onlyBuiltDependencies` in the root package.json.
