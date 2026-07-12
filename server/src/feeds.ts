@@ -83,6 +83,81 @@ export function parseSpaceused(table: Cell[][]): SpaceusedParse {
   return { rows, errors, warnings };
 }
 
+export type GrowthRateRow = {
+  line: number;
+  identifier: string;
+  /** Raw ratio, 0.2 = 20%/yr. Large values on small new databases are legitimate. */
+  growthRate: number;
+};
+export type GrowthRateParse = { rows: GrowthRateRow[]; errors: RowIssue[]; warnings: string[] };
+
+/**
+ * Growth Rate feed: identifier + raw growth ratio. Defaults to two columns, but a
+ * header row selects the rate column explicitly, so a full workbook-sheet export
+ * (identifier, size, uplift, rate, floored rate) reads the raw 'Growth rate'
+ * column — never the size column and never the pre-floored one.
+ */
+export function parseGrowthRate(table: Cell[][]): GrowthRateParse {
+  const rows: GrowthRateRow[] = [];
+  const errors: RowIssue[] = [];
+  const warnings: string[] = [];
+  const seen = new Set<string>();
+
+  let rateColumn = 1;
+  let body = table;
+  const header = table[0];
+  if (header && header.every((c) => asNumber(c) === null)) {
+    const names = header.map((c) => (typeof c === 'string' ? c.trim().toLowerCase() : ''));
+    const found = names.findIndex((n) => /^growth\s*rat(e|io)$/.test(n));
+    if (found >= 0) rateColumn = found;
+    body = table.slice(1);
+  }
+
+  body.forEach((cells, index) => {
+    const line = index + (body === table ? 1 : 2);
+    const rawIdentifier = typeof cells[0] === 'string' ? cells[0].trim() : String(cells[0] ?? '');
+    if (rawIdentifier === '') {
+      errors.push({ line, identifier: null, message: 'missing identifier' });
+      return;
+    }
+    const codePart = rawIdentifier.split('_')[0];
+    if (!COMPANY_CODE.test(codePart)) {
+      errors.push({
+        line,
+        identifier: rawIdentifier,
+        message: `bad identifier: '${codePart}' is not a 4-letter Company Code`,
+      });
+      return;
+    }
+    const growthRate = asNumber(cells[rateColumn] ?? null);
+    if (growthRate === null) {
+      errors.push({
+        line,
+        identifier: rawIdentifier,
+        message: `non-numeric growth rate: '${cells[rateColumn]}'`,
+      });
+      return;
+    }
+    if (growthRate < 0) {
+      errors.push({
+        line,
+        identifier: rawIdentifier,
+        message: `growth rate must not be negative: ${growthRate}`,
+      });
+      return;
+    }
+    const identifier = rawIdentifier === codePart ? codePart.toUpperCase() : rawIdentifier;
+    if (seen.has(identifier)) {
+      warnings.push(`line ${line}: duplicate identifier '${identifier}' ignored (first occurrence wins)`);
+      return;
+    }
+    seen.add(identifier);
+    rows.push({ line, identifier, growthRate });
+  });
+
+  return { rows, errors, warnings };
+}
+
 export type AccountNameRow = { line: number; companyCode: string; accountName: string };
 export type AccountNamesParse = { rows: AccountNameRow[]; errors: RowIssue[]; warnings: string[] };
 

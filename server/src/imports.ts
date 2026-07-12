@@ -1,6 +1,6 @@
 import { eq, inArray } from 'drizzle-orm';
 import type { Db } from './db.js';
-import type { AccountNameRow, SpaceusedRow } from './feeds.js';
+import type { AccountNameRow, GrowthRateRow, SpaceusedRow } from './feeds.js';
 import { customers, environments, imports } from './schema.js';
 
 const MB_PER_GB = 1000;
@@ -79,6 +79,55 @@ export function commitSpaceused(db: Db, rows: SpaceusedRow[], filename: string |
     }
 
     tx.insert(imports).values({ feed: 'spaceused', rowCount: rows.length, filename }).run();
+    return diff;
+  });
+}
+
+export type GrowthRateDiff = {
+  attached: { identifier: string; growthRate: number }[];
+  updated: { identifier: string; oldGrowthRate: number; newGrowthRate: number }[];
+  unchangedCount: number;
+  /** Feed rows whose identifier matches no Environment — reported, not silently dropped. */
+  unknownIdentifiers: string[];
+};
+
+export function diffGrowthRate(db: Db, rows: GrowthRateRow[]): GrowthRateDiff {
+  const existing = db.select().from(environments).all();
+  const byIdentifier = new Map(existing.map((e) => [e.identifier, e]));
+  const diff: GrowthRateDiff = { attached: [], updated: [], unchangedCount: 0, unknownIdentifiers: [] };
+  for (const row of rows) {
+    const env = byIdentifier.get(row.identifier);
+    if (!env) {
+      diff.unknownIdentifiers.push(row.identifier);
+    } else if (env.growthRate === null) {
+      diff.attached.push({ identifier: row.identifier, growthRate: row.growthRate });
+    } else if (env.growthRate !== row.growthRate) {
+      diff.updated.push({
+        identifier: row.identifier,
+        oldGrowthRate: env.growthRate,
+        newGrowthRate: row.growthRate,
+      });
+    } else {
+      diff.unchangedCount++;
+    }
+  }
+  return diff;
+}
+
+export function commitGrowthRate(db: Db, rows: GrowthRateRow[], filename: string | null): GrowthRateDiff {
+  return db.transaction((tx) => {
+    const diff = diffGrowthRate(tx as unknown as Db, rows);
+    const unknown = new Set(diff.unknownIdentifiers);
+    for (const row of rows) {
+      if (unknown.has(row.identifier)) continue;
+      tx.update(environments)
+        .set({ growthRate: row.growthRate })
+        .where(eq(environments.identifier, row.identifier))
+        .run();
+    }
+    tx.insert(imports)
+      .values({ feed: 'growth-rate', rowCount: rows.length - unknown.size, filename })
+      .run();
     return diff;
   });
 }

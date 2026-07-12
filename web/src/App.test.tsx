@@ -69,14 +69,30 @@ it('the Imports page lists Environments with staleness and missing flags', async
       imports: {
         spaceused: { importedAt: staleDate, rowCount: 366 },
         accountNames: null,
+        growthRate: null,
       },
+      growthFloor: 0.3,
       customers: [
         {
           companyCode: 'MOLH',
           accountName: 'Mighty-Ocelot',
           environments: [
-            { identifier: 'MOLH_imos_MPCC_PROD', dbSizeGb: 100.5, missingFromLastImport: false },
-            { identifier: 'MOLH_imos_MOLDB_prod', dbSizeGb: 50.25, missingFromLastImport: true },
+            {
+              identifier: 'MOLH_imos_MPCC_PROD',
+              dbSizeGb: 100.5,
+              missingFromLastImport: false,
+              growthRate: 0.45,
+              effectiveGrowthRate: 0.45,
+              growthDefaulted: false,
+            },
+            {
+              identifier: 'MOLH_imos_MOLDB_prod',
+              dbSizeGb: 50.25,
+              missingFromLastImport: true,
+              growthRate: null,
+              effectiveGrowthRate: 0.3,
+              growthDefaulted: true,
+            },
           ],
         },
         { companyCode: 'ZZZZ', accountName: null, environments: [] },
@@ -88,7 +104,10 @@ it('the Imports page lists Environments with staleness and missing flags', async
   expect(screen.getByText(/stale: over 30 days old/)).toBeDefined();
   expect(screen.getByText(/missing from last import/)).toBeDefined();
   expect(screen.getByText(/no Environment \(unpriceable\)/)).toBeDefined();
-  expect(screen.getByText(/never imported/)).toBeDefined();
+  expect(screen.getAllByText(/never imported/).length).toBeGreaterThan(0);
+  expect(screen.getAllByText('45%')).toHaveLength(2); // raw and effective columns
+  expect(screen.getByText(/none imported/)).toBeDefined();
+  expect(screen.getByText(/\(defaulted to floor\)/)).toBeDefined();
 });
 
 it('a Sales user visiting an admin route is sent back home', async () => {

@@ -51,6 +51,8 @@ export const environments = sqliteTable('environments', {
   /** Raw feed identifier: a bare Company Code (1:1 case) or a full name like MOLH_imos_MPCC_PROD. */
   identifier: text('identifier').notNull().unique(),
   dbSizeGb: real('db_size_gb').notNull(),
+  /** Raw Growth Rate ratio (0.2 = 20%/yr); null = never imported. The floor is applied at read time. */
+  growthRate: real('growth_rate'),
   /** Set when the identifier vanished from the latest spaceused feed — flagged, never deleted. */
   missingFromLastImport: integer('missing_from_last_import', { mode: 'boolean' })
     .notNull()
@@ -59,7 +61,7 @@ export const environments = sqliteTable('environments', {
 
 export const imports = sqliteTable('imports', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  feed: text('feed', { enum: ['spaceused', 'account-names'] }).notNull(),
+  feed: text('feed', { enum: ['spaceused', 'account-names', 'growth-rate'] }).notNull(),
   importedAt: integer('imported_at', { mode: 'timestamp' })
     .notNull()
     .$defaultFn(() => new Date()),

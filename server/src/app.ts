@@ -14,11 +14,13 @@ import {
 import { computeCost } from './costModel.js';
 import type { Db } from './db.js';
 import { tableFromUpload } from './feedFiles.js';
-import { parseAccountNames, parseSpaceused } from './feeds.js';
+import { parseAccountNames, parseGrowthRate, parseSpaceused } from './feeds.js';
 import {
   commitAccountNames,
+  commitGrowthRate,
   commitSpaceused,
   diffAccountNames,
+  diffGrowthRate,
   diffSpaceused,
 } from './imports.js';
 import { appMeta, customers, environments, imports, users, type User } from './schema.js';
@@ -149,6 +151,31 @@ export function buildApp(db: Db) {
     );
 
     app.post(
+      `/api/imports/growth-rate/${mode}`,
+      { preHandler: requireAdmin },
+      async (req, reply) => {
+        let upload;
+        try {
+          upload = await readUpload(req);
+        } catch (err) {
+          return reply.code(400).send({ error: (err as Error).message });
+        }
+        if (!upload) return reply.code(400).send({ error: 'no file uploaded' });
+        const { rows, errors, warnings } = parseGrowthRate(upload.table);
+        if (errors.length > 0) {
+          return reply.code(422).send({ errors, warnings, committed: false });
+        }
+        // Unknown identifiers are reported in the diff but don't reject the file —
+        // rates attach to the Environments that do exist.
+        const diff =
+          mode === 'commit'
+            ? commitGrowthRate(db, rows, upload.filename)
+            : diffGrowthRate(db, rows);
+        return { errors, warnings, rowCount: rows.length, diff, committed: mode === 'commit' };
+      },
+    );
+
+    app.post(
       `/api/imports/account-names/${mode}`,
       { preHandler: requireAdmin },
       async (req, reply) => {
@@ -175,13 +202,16 @@ export function buildApp(db: Db) {
   app.get('/api/customers', { preHandler: requireAdmin }, async () => {
     const customerRows = db.select().from(customers).all();
     const environmentRows = db.select().from(environments).all();
+    // The growth floor is applied at read time, never baked into stored values —
+    // an Assumption edit re-floors everyone on the next request.
+    const growthFloor = loadCostModelAssumptions(db).growthFloor;
     const byCustomer = new Map<number, typeof environmentRows>();
     for (const env of environmentRows) {
       const list = byCustomer.get(env.customerId) ?? [];
       list.push(env);
       byCustomer.set(env.customerId, list);
     }
-    const lastImport = (feed: 'spaceused' | 'account-names') =>
+    const lastImport = (feed: 'spaceused' | 'account-names' | 'growth-rate') =>
       db
         .select()
         .from(imports)
@@ -190,7 +220,12 @@ export function buildApp(db: Db) {
         .limit(1)
         .get() ?? null;
     return {
-      imports: { spaceused: lastImport('spaceused'), accountNames: lastImport('account-names') },
+      imports: {
+        spaceused: lastImport('spaceused'),
+        accountNames: lastImport('account-names'),
+        growthRate: lastImport('growth-rate'),
+      },
+      growthFloor,
       customers: customerRows
         .sort((a, b) => a.companyCode.localeCompare(b.companyCode))
         .map((c) => ({
@@ -200,6 +235,9 @@ export function buildApp(db: Db) {
             identifier: e.identifier,
             dbSizeGb: e.dbSizeGb,
             missingFromLastImport: e.missingFromLastImport,
+            growthRate: e.growthRate,
+            effectiveGrowthRate: Math.max(e.growthRate ?? growthFloor, growthFloor),
+            growthDefaulted: e.growthRate === null,
           })),
         })),
     };

@@ -16,6 +16,13 @@ type SpaceusedDiff = {
   missing: string[];
 };
 
+type GrowthRateDiff = {
+  attached: { identifier: string; growthRate: number }[];
+  updated: { identifier: string; oldGrowthRate: number; newGrowthRate: number }[];
+  unchangedCount: number;
+  unknownIdentifiers: string[];
+};
+
 type AccountNamesDiff = {
   namesSet: { companyCode: string; oldAccountName: string | null; accountName: string }[];
   customersCreated: string[];
@@ -35,11 +42,20 @@ type CustomerList = {
   imports: {
     spaceused: { importedAt: string; rowCount: number } | null;
     accountNames: { importedAt: string; rowCount: number } | null;
+    growthRate: { importedAt: string; rowCount: number } | null;
   };
+  growthFloor: number;
   customers: {
     companyCode: string;
     accountName: string | null;
-    environments: { identifier: string; dbSizeGb: number; missingFromLastImport: boolean }[];
+    environments: {
+      identifier: string;
+      dbSizeGb: number;
+      missingFromLastImport: boolean;
+      growthRate: number | null;
+      effectiveGrowthRate: number;
+      growthDefaulted: boolean;
+    }[];
   }[];
 };
 
@@ -47,6 +63,10 @@ const STALE_AFTER_DAYS = 30;
 
 function gb(n: number) {
   return `${n.toLocaleString('en-US', { maximumFractionDigits: 2 })} GB`;
+}
+
+function pct(ratio: number) {
+  return `${(ratio * 100).toLocaleString('en-US', { maximumFractionDigits: 2 })}%`;
 }
 
 function FeedStatus({ label, imported }: { label: string; imported: { importedAt: string; rowCount: number } | null }) {
@@ -189,6 +209,37 @@ export function Imports() {
         )}
       />
 
+      <UploadCard<GrowthRateDiff>
+        title="Growth Rates"
+        feed="growth-rate"
+        onCommitted={refresh}
+        renderDiff={(diff) => (
+          <ul>
+            <li>{diff.attached.length} Environments will get a Growth Rate</li>
+            <li>
+              {diff.updated.length} Environments will change
+              {diff.updated.length > 0 && (
+                <ul>
+                  {diff.updated.slice(0, 20).map((u) => (
+                    <li key={u.identifier}>
+                      {u.identifier}: {pct(u.oldGrowthRate)} → {pct(u.newGrowthRate)}
+                    </li>
+                  ))}
+                  {diff.updated.length > 20 && <li>… and {diff.updated.length - 20} more</li>}
+                </ul>
+              )}
+            </li>
+            <li>{diff.unchangedCount} unchanged</li>
+            {diff.unknownIdentifiers.length > 0 && (
+              <li>
+                {diff.unknownIdentifiers.length} rows reference unknown Environments and will be
+                skipped: {diff.unknownIdentifiers.join(', ')}
+              </li>
+            )}
+          </ul>
+        )}
+      />
+
       <UploadCard<AccountNamesDiff>
         title="Account names (Company Code cheat sheet)"
         feed="account-names"
@@ -208,7 +259,9 @@ export function Imports() {
       {list && (
         <>
           <FeedStatus label="DB sizes" imported={list.imports.spaceused} />
+          <FeedStatus label="Growth Rates" imported={list.imports.growthRate} />
           <FeedStatus label="Account names" imported={list.imports.accountNames} />
+          <p>Growth floor: {pct(list.growthFloor)} (applied at read time)</p>
           <table>
             <thead>
               <tr>
@@ -216,6 +269,8 @@ export function Imports() {
                 <th>Account Name</th>
                 <th>Environment</th>
                 <th>IMOS DB Size</th>
+                <th>Growth Rate</th>
+                <th>Effective Growth</th>
               </tr>
             </thead>
             <tbody>
@@ -228,6 +283,8 @@ export function Imports() {
                       <em>no Environment (unpriceable)</em>
                     </td>
                     <td>—</td>
+                    <td>—</td>
+                    <td>—</td>
                   </tr>
                 ) : (
                   c.environments.map((e) => (
@@ -239,6 +296,11 @@ export function Imports() {
                         {e.missingFromLastImport && <strong> ⚠ missing from last import</strong>}
                       </td>
                       <td>{gb(e.dbSizeGb)}</td>
+                      <td>{e.growthRate === null ? <em>none imported</em> : pct(e.growthRate)}</td>
+                      <td>
+                        {pct(e.effectiveGrowthRate)}
+                        {e.growthDefaulted && <em> (defaulted to floor)</em>}
+                      </td>
                     </tr>
                   ))
                 ),
