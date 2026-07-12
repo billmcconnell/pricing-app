@@ -59,6 +59,36 @@ it('a Sales user sees quotes but no admin navigation', async () => {
   expect(screen.getByRole('link', { name: 'Quotes' })).toBeDefined();
   expect(screen.queryByRole('link', { name: 'Users' })).toBeNull();
   expect(screen.queryByRole('link', { name: 'Cost Model' })).toBeNull();
+  expect(screen.queryByRole('link', { name: 'Imports' })).toBeNull();
+});
+
+it('the Imports page lists Environments with staleness and missing flags', async () => {
+  const staleDate = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
+  stubFetch(adminUser, {
+    '/api/customers': {
+      imports: {
+        spaceused: { importedAt: staleDate, rowCount: 366 },
+        accountNames: null,
+      },
+      customers: [
+        {
+          companyCode: 'MOLH',
+          accountName: 'Mighty-Ocelot',
+          environments: [
+            { identifier: 'MOLH_imos_MPCC_PROD', dbSizeGb: 100.5, missingFromLastImport: false },
+            { identifier: 'MOLH_imos_MOLDB_prod', dbSizeGb: 50.25, missingFromLastImport: true },
+          ],
+        },
+        { companyCode: 'ZZZZ', accountName: null, environments: [] },
+      ],
+    },
+  });
+  renderApp('/admin/imports');
+  expect(await screen.findByText('MOLH_imos_MPCC_PROD')).toBeDefined();
+  expect(screen.getByText(/stale: over 30 days old/)).toBeDefined();
+  expect(screen.getByText(/missing from last import/)).toBeDefined();
+  expect(screen.getByText(/no Environment \(unpriceable\)/)).toBeDefined();
+  expect(screen.getByText(/never imported/)).toBeDefined();
 });
 
 it('a Sales user visiting an admin route is sent back home', async () => {

@@ -1,6 +1,7 @@
 import cookie from '@fastify/cookie';
+import multipart from '@fastify/multipart';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
-import { eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { loadCostModelAssumptions } from './assumptions.js';
 import {
   createSession,
@@ -12,7 +13,15 @@ import {
 } from './auth.js';
 import { computeCost } from './costModel.js';
 import type { Db } from './db.js';
-import { appMeta, users, type User } from './schema.js';
+import { tableFromUpload } from './feedFiles.js';
+import { parseAccountNames, parseSpaceused } from './feeds.js';
+import {
+  commitAccountNames,
+  commitSpaceused,
+  diffAccountNames,
+  diffSpaceused,
+} from './imports.js';
+import { appMeta, customers, environments, imports, users, type User } from './schema.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -32,6 +41,7 @@ export function buildApp(db: Db) {
   const app = Fastify({ logger: process.env.NODE_ENV !== 'test' });
 
   app.register(cookie);
+  app.register(multipart, { limits: { fileSize: 20 * 1024 * 1024, files: 1 } });
   app.decorateRequest('user', null);
 
   app.addHook('onRequest', async (req: FastifyRequest, reply: FastifyReply) => {
@@ -106,6 +116,94 @@ export function buildApp(db: Db) {
       return computeCost({ dbSizeGb, growthRate }, a);
     },
   );
+
+  const readUpload = async (req: FastifyRequest) => {
+    const file = await req.file();
+    if (!file) return null;
+    return { filename: file.filename, table: await tableFromUpload(file.filename, await file.toBuffer()) };
+  };
+
+  for (const mode of ['preview', 'commit'] as const) {
+    app.post(
+      `/api/imports/spaceused/${mode}`,
+      { preHandler: requireAdmin },
+      async (req, reply) => {
+        let upload;
+        try {
+          upload = await readUpload(req);
+        } catch (err) {
+          return reply.code(400).send({ error: (err as Error).message });
+        }
+        if (!upload) return reply.code(400).send({ error: 'no file uploaded' });
+        const { rows, errors, warnings } = parseSpaceused(upload.table);
+        if (errors.length > 0) {
+          // Nothing partial is ever committed: any malformed row rejects the whole file.
+          return reply.code(422).send({ errors, warnings, committed: false });
+        }
+        const diff =
+          mode === 'commit'
+            ? commitSpaceused(db, rows, upload.filename)
+            : diffSpaceused(db, rows);
+        return { errors, warnings, rowCount: rows.length, diff, committed: mode === 'commit' };
+      },
+    );
+
+    app.post(
+      `/api/imports/account-names/${mode}`,
+      { preHandler: requireAdmin },
+      async (req, reply) => {
+        let upload;
+        try {
+          upload = await readUpload(req);
+        } catch (err) {
+          return reply.code(400).send({ error: (err as Error).message });
+        }
+        if (!upload) return reply.code(400).send({ error: 'no file uploaded' });
+        const { rows, errors, warnings } = parseAccountNames(upload.table);
+        if (errors.length > 0) {
+          return reply.code(422).send({ errors, warnings, committed: false });
+        }
+        const diff =
+          mode === 'commit'
+            ? commitAccountNames(db, rows, upload.filename)
+            : diffAccountNames(db, rows);
+        return { errors, warnings, rowCount: rows.length, diff, committed: mode === 'commit' };
+      },
+    );
+  }
+
+  app.get('/api/customers', { preHandler: requireAdmin }, async () => {
+    const customerRows = db.select().from(customers).all();
+    const environmentRows = db.select().from(environments).all();
+    const byCustomer = new Map<number, typeof environmentRows>();
+    for (const env of environmentRows) {
+      const list = byCustomer.get(env.customerId) ?? [];
+      list.push(env);
+      byCustomer.set(env.customerId, list);
+    }
+    const lastImport = (feed: 'spaceused' | 'account-names') =>
+      db
+        .select()
+        .from(imports)
+        .where(eq(imports.feed, feed))
+        .orderBy(desc(imports.importedAt))
+        .limit(1)
+        .get() ?? null;
+    return {
+      imports: { spaceused: lastImport('spaceused'), accountNames: lastImport('account-names') },
+      customers: customerRows
+        .sort((a, b) => a.companyCode.localeCompare(b.companyCode))
+        .map((c) => ({
+          companyCode: c.companyCode,
+          accountName: c.accountName,
+          environments: (byCustomer.get(c.id) ?? []).map((e) => ({
+            identifier: e.identifier,
+            dbSizeGb: e.dbSizeGb,
+            missingFromLastImport: e.missingFromLastImport,
+          })),
+        })),
+    };
+  });
 
   app.get('/api/users', { preHandler: requireAdmin }, async () => {
     return db.select().from(users).all().map(toPublicUser);

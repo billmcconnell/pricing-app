@@ -36,3 +36,36 @@ export const assumptions = sqliteTable('assumptions', {
 });
 
 export type Assumption = typeof assumptions.$inferSelect;
+
+export const customers = sqliteTable('customers', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  companyCode: text('company_code').notNull().unique(),
+  accountName: text('account_name'),
+});
+
+export const environments = sqliteTable('environments', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  customerId: integer('customer_id')
+    .notNull()
+    .references(() => customers.id, { onDelete: 'cascade' }),
+  /** Raw feed identifier: a bare Company Code (1:1 case) or a full name like MOLH_imos_MPCC_PROD. */
+  identifier: text('identifier').notNull().unique(),
+  dbSizeGb: real('db_size_gb').notNull(),
+  /** Set when the identifier vanished from the latest spaceused feed — flagged, never deleted. */
+  missingFromLastImport: integer('missing_from_last_import', { mode: 'boolean' })
+    .notNull()
+    .default(false),
+});
+
+export const imports = sqliteTable('imports', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  feed: text('feed', { enum: ['spaceused', 'account-names'] }).notNull(),
+  importedAt: integer('imported_at', { mode: 'timestamp' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  rowCount: integer('row_count').notNull(),
+  filename: text('filename'),
+});
+
+export type Customer = typeof customers.$inferSelect;
+export type Environment = typeof environments.$inferSelect;

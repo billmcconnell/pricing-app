@@ -4,6 +4,7 @@ import { useAuth } from './auth.js';
 import { AdminUsers } from './pages/AdminUsers.js';
 import { CostModel } from './pages/CostModel.js';
 import { Home } from './pages/Home.js';
+import { Imports } from './pages/Imports.js';
 import { Login } from './pages/Login.js';
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -25,6 +26,7 @@ function Layout() {
     <>
       <nav>
         <Link to="/">Quotes</Link>
+        {user?.role === 'admin' && <Link to="/admin/imports">Imports</Link>}
         {user?.role === 'admin' && <Link to="/admin/cost-model">Cost Model</Link>}
         {user?.role === 'admin' && <Link to="/admin/users">Users</Link>}
         <span>
@@ -50,6 +52,14 @@ export function App() {
         }
       >
         <Route path="/" element={<Home />} />
+        <Route
+          path="/admin/imports"
+          element={
+            <RequireAdmin>
+              <Imports />
+            </RequireAdmin>
+          }
+        />
         <Route
           path="/admin/cost-model"
           element={
