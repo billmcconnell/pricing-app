@@ -1,30 +1,63 @@
-import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
+import { Link, Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { useAuth } from './auth.js';
+import { AdminUsers } from './pages/AdminUsers.js';
+import { Home } from './pages/Home.js';
+import { Login } from './pages/Login.js';
 
-type Health = { status: string; appName: string | null };
+function RequireAuth({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return <p>Loading…</p>;
+  if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+function RequireAdmin({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  if (user?.role !== 'admin') return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
+function Layout() {
+  const { user, logout } = useAuth();
+  return (
+    <>
+      <nav>
+        <Link to="/">Quotes</Link>
+        {user?.role === 'admin' && <Link to="/admin/users">Users</Link>}
+        <span>
+          {user?.email} <button onClick={() => void logout()}>Sign out</button>
+        </span>
+      </nav>
+      <main>
+        <Outlet />
+      </main>
+    </>
+  );
+}
 
 export function App() {
-  const [health, setHealth] = useState<Health | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch('/api/health')
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json() as Promise<Health>;
-      })
-      .then(setHealth)
-      .catch((err: Error) => setError(err.message));
-  }, []);
-
-  if (error) return <p>Backend unreachable: {error}</p>;
-  if (!health) return <p>Loading…</p>;
-
   return (
-    <main>
-      <h1>{health.appName}</h1>
-      <p>
-        Server status: <strong>{health.status}</strong>
-      </p>
-    </main>
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route
+        element={
+          <RequireAuth>
+            <Layout />
+          </RequireAuth>
+        }
+      >
+        <Route path="/" element={<Home />} />
+        <Route
+          path="/admin/users"
+          element={
+            <RequireAdmin>
+              <AdminUsers />
+            </RequireAdmin>
+          }
+        />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }

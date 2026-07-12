@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
+import { hashPassword } from './auth.js';
 import * as schema from './schema.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -28,6 +29,17 @@ function seed(db: ReturnType<typeof drizzle<typeof schema>>) {
     .values({ key: 'app_name', value: 'Data Lake Pricing' })
     .onConflictDoNothing()
     .run();
+
+  const anyUser = db.select({ id: schema.users.id }).from(schema.users).limit(1).get();
+  if (!anyUser) {
+    db.insert(schema.users)
+      .values({
+        email: process.env.ADMIN_EMAIL ?? 'admin@example.com',
+        passwordHash: hashPassword(process.env.ADMIN_PASSWORD ?? 'change-me'),
+        role: 'admin',
+      })
+      .run();
+  }
 }
 
 export function defaultDbPath(): string {
