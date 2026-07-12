@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Link, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth.js';
 import { AdminUsers } from './pages/AdminUsers.js';
+import { CostModel } from './pages/CostModel.js';
 import { Home } from './pages/Home.js';
 import { Login } from './pages/Login.js';
 
@@ -24,6 +25,7 @@ function Layout() {
     <>
       <nav>
         <Link to="/">Quotes</Link>
+        {user?.role === 'admin' && <Link to="/admin/cost-model">Cost Model</Link>}
         {user?.role === 'admin' && <Link to="/admin/users">Users</Link>}
         <span>
           {user?.email} <button onClick={() => void logout()}>Sign out</button>
@@ -48,6 +50,14 @@ export function App() {
         }
       >
         <Route path="/" element={<Home />} />
+        <Route
+          path="/admin/cost-model"
+          element={
+            <RequireAdmin>
+              <CostModel />
+            </RequireAdmin>
+          }
+        />
         <Route
           path="/admin/users"
           element={

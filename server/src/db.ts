@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
+import { ASSUMPTION_SEEDS } from './assumptions.js';
 import { hashPassword } from './auth.js';
 import * as schema from './schema.js';
 
@@ -29,6 +30,9 @@ function seed(db: ReturnType<typeof drizzle<typeof schema>>) {
     .values({ key: 'app_name', value: 'Data Lake Pricing' })
     .onConflictDoNothing()
     .run();
+
+  // onConflictDoNothing: seeds fill gaps only — Admin edits to existing values survive restarts.
+  db.insert(schema.assumptions).values(ASSUMPTION_SEEDS).onConflictDoNothing().run();
 
   const anyUser = db.select({ id: schema.users.id }).from(schema.users).limit(1).get();
   if (!anyUser) {

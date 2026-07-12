@@ -1,6 +1,7 @@
 import cookie from '@fastify/cookie';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import { eq } from 'drizzle-orm';
+import { loadCostModelAssumptions } from './assumptions.js';
 import {
   createSession,
   destroySession,
@@ -9,6 +10,7 @@ import {
   userForSession,
   verifyPassword,
 } from './auth.js';
+import { computeCost } from './costModel.js';
 import type { Db } from './db.js';
 import { appMeta, users, type User } from './schema.js';
 
@@ -85,6 +87,25 @@ export function buildApp(db: Db) {
   });
 
   app.get('/api/auth/me', async (req) => toPublicUser(req.user!));
+
+  // Full cost breakdown (OPEX, margin, contingency) is Admin-only; the Sales-facing
+  // quote screen (issue 06) will expose List Price without the internals.
+  app.get<{ Querystring: { dbSizeGb?: string; growthRate?: string } }>(
+    '/api/cost-model/compute',
+    { preHandler: requireAdmin },
+    async (req, reply) => {
+      const dbSizeGb = Number(req.query.dbSizeGb);
+      const growthRate = Number(req.query.growthRate);
+      if (!Number.isFinite(dbSizeGb) || dbSizeGb < 0) {
+        return reply.code(400).send({ error: 'dbSizeGb must be a non-negative number' });
+      }
+      if (!Number.isFinite(growthRate) || growthRate < 0) {
+        return reply.code(400).send({ error: 'growthRate must be a non-negative number' });
+      }
+      const a = loadCostModelAssumptions(db);
+      return computeCost({ dbSizeGb, growthRate }, a);
+    },
+  );
 
   app.get('/api/users', { preHandler: requireAdmin }, async () => {
     return db.select().from(users).all().map(toPublicUser);

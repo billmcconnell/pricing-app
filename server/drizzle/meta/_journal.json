@@ -15,6 +15,13 @@
       "when": 1783893771686,
       "tag": "0001_eminent_thor_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1783894522005,
+      "tag": "0002_gifted_starbolt",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 export const appMeta = sqliteTable('app_meta', {
   key: text('key').primaryKey(),
@@ -26,3 +26,13 @@ export const sessions = sqliteTable('sessions', {
 
 export type User = typeof users.$inferSelect;
 export type Role = User['role'];
+
+export const assumptions = sqliteTable('assumptions', {
+  key: text('key').primaryKey(),
+  value: real('value').notNull(),
+  label: text('label').notNull(),
+  category: text('category', { enum: ['unit-cost', 'behavioral', 'commercial'] }).notNull(),
+  unit: text('unit'),
+});
+
+export type Assumption = typeof assumptions.$inferSelect;
