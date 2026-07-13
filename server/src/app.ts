@@ -11,7 +11,7 @@ import {
   userForSession,
   verifyPassword,
 } from './auth.js';
-import { computeCost } from './costModel.js';
+import { computeCost, projectMultiYear } from './costModel.js';
 import type { Db } from './db.js';
 import { tableFromUpload } from './feedFiles.js';
 import { parseAccountNames, parseGrowthRate, parseSpaceused } from './feeds.js';
@@ -128,18 +128,21 @@ export function buildApp(db: Db) {
   });
 
   // Quotes are ephemeral — this computes and returns, persisting nothing.
-  app.get<{ Querystring: { environment?: string } }>('/api/quote', async (req, reply) => {
+  app.get<{ Querystring: { environment?: string; years?: string } }>('/api/quote', async (req, reply) => {
     const identifier = req.query.environment;
     if (!identifier) return reply.code(400).send({ error: 'environment is required' });
+    const years = req.query.years === undefined ? 5 : Number(req.query.years);
+    if (!Number.isInteger(years) || years < 1 || years > 30) {
+      return reply.code(400).send({ error: 'years must be an integer between 1 and 30' });
+    }
     const env = db.select().from(environments).where(eq(environments.identifier, identifier)).get();
     if (!env) return reply.code(404).send({ error: 'unknown Environment' });
     const customer = db.select().from(customers).where(eq(customers.id, env.customerId)).get()!;
 
     const a = loadCostModelAssumptions(db);
-    const breakdown = computeCost(
-      { dbSizeGb: env.dbSizeGb, growthRate: env.growthRate ?? a.growthFloor },
-      a,
-    );
+    const modelInputs = { dbSizeGb: env.dbSizeGb, growthRate: env.growthRate ?? a.growthFloor };
+    const breakdown = computeCost(modelInputs, a);
+    const projection = projectMultiYear(modelInputs, years, a);
     const quote = {
       identifier: env.identifier,
       companyCode: customer.companyCode,
@@ -150,6 +153,15 @@ export function buildApp(db: Db) {
       growthDefaulted: env.growthRate === null,
       grownSizeGb: breakdown.grownSizeGb,
       listPrice: breakdown.listPrice,
+      projection: {
+        // Per-year OPEX and credit allocation stay server-side for every role.
+        years: projection.years.map((y) => ({
+          year: y.year,
+          projectedSizeGb: y.projectedSizeGb,
+          listPrice: y.listPrice,
+        })),
+        totalListPrice: projection.totalListPrice,
+      },
       quotedAt: new Date().toISOString(),
     };
     // The role boundary is enforced in the payload, not just the UI:

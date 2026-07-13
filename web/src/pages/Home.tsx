@@ -30,6 +30,10 @@ type Quote = {
   growthDefaulted: boolean;
   grownSizeGb: number;
   listPrice: number;
+  projection: {
+    years: { year: number; projectedSizeGb: number; listPrice: number }[];
+    totalListPrice: number;
+  };
   quotedAt: string;
   breakdown?: CostBreakdown;
 };
@@ -51,6 +55,7 @@ export function Home() {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<QuoteCustomer | null>(null);
   const [environment, setEnvironment] = useState<string | null>(null);
+  const [years, setYears] = useState(5);
   const [quote, setQuote] = useState<Quote | null>(null);
 
   useEffect(() => {
@@ -69,7 +74,7 @@ export function Home() {
       return;
     }
     let cancelled = false;
-    fetch(`/api/quote?environment=${encodeURIComponent(environment)}`)
+    fetch(`/api/quote?environment=${encodeURIComponent(environment)}&years=${years}`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json() as Promise<Quote>;
@@ -83,7 +88,7 @@ export function Home() {
     return () => {
       cancelled = true;
     };
-  }, [environment]);
+  }, [environment, years]);
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -190,6 +195,46 @@ export function Home() {
             </li>
             <li>Grown size: {gb(quote.grownSizeGb)}</li>
           </ul>
+          <h3>Multi-Year Projection</h3>
+          <label>
+            Years
+            <input
+              type="number"
+              min={1}
+              max={30}
+              value={years}
+              onChange={(e) => {
+                const n = Number(e.target.value);
+                if (Number.isInteger(n) && n >= 1 && n <= 30) setYears(n);
+              }}
+            />
+          </label>
+          <table>
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th>Projected size</th>
+                <th>List Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              {quote.projection.years.map((y) => (
+                <tr key={y.year}>
+                  <td>{y.year}</td>
+                  <td>{gb(y.projectedSizeGb)}</td>
+                  <td>{usd(y.listPrice)}</td>
+                </tr>
+              ))}
+              <tr>
+                <td colSpan={2}>
+                  <strong>Total ({quote.projection.years.length} years)</strong>
+                </td>
+                <td>
+                  <strong>{usd(quote.projection.totalListPrice)}</strong>
+                </td>
+              </tr>
+            </tbody>
+          </table>
           <p>
             <em>Quotes are not saved — prices reflect current data and Assumptions.</em>
           </p>

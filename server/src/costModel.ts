@@ -51,7 +51,14 @@ export function creditsForGrownSize(grownSizeGb: number, tiers: CreditTier[]): n
 export function computeCost(inputs: CostModelInputs, a: CostModelAssumptions) {
   const effectiveGrowthRate = Math.max(inputs.growthRate, a.growthFloor);
   const grownSizeGb = inputs.dbSizeGb * (1 + effectiveGrowthRate);
+  return {
+    inputs: { ...inputs, effectiveGrowthRate },
+    ...computeCostForGrownSize(grownSizeGb, a),
+  };
+}
 
+/** Price a size that has already been grown — used per projection year. */
+export function computeCostForGrownSize(grownSizeGb: number, a: CostModelAssumptions) {
   // GB moved per year by transactional changes (turnover % of the DB, monthly).
   const yearlyTurnoverGb = grownSizeGb * a.monthlyTurnoverRate * MONTHS_PER_YEAR;
   const reloadGb = grownSizeGb * FULL_RELOADS_PER_YEAR;
@@ -97,7 +104,6 @@ export function computeCost(inputs: CostModelInputs, a: CostModelAssumptions) {
   const listPrice = Math.max(roundedListPrice, a.priceFloor);
 
   return {
-    inputs: { ...inputs, effectiveGrowthRate },
     grownSizeGb,
     fixedCosts: { dms, dataloadAlerts, total: fixedTotal },
     variableCosts: {
@@ -116,5 +122,50 @@ export function computeCost(inputs: CostModelInputs, a: CostModelAssumptions) {
     opex,
     grossMargin: a.grossMargin,
     listPrice,
+  };
+}
+
+export type YearProjection = {
+  year: number;
+  /** The size the cost model priced for this year — already grown. */
+  projectedSizeGb: number;
+  listPrice: number;
+  opex: number;
+  creditsPerMonth: number;
+};
+
+export type MultiYearProjection = {
+  years: YearProjection[];
+  totalListPrice: number;
+};
+
+/**
+ * Multi-Year Projection (CONTEXT.md): grow the database size and re-run the full
+ * cost model for each year — never compound the price. Year 1 grows by the
+ * Environment's own effective Growth Rate; years 2+ grow by the floor, because a
+ * ramp-up trend is not a steady state.
+ */
+export function projectMultiYear(
+  inputs: CostModelInputs,
+  years: number,
+  a: CostModelAssumptions,
+): MultiYearProjection {
+  const effectiveGrowthRate = Math.max(inputs.growthRate, a.growthFloor);
+  const out: YearProjection[] = [];
+  let size = inputs.dbSizeGb;
+  for (let year = 1; year <= years; year++) {
+    size *= 1 + (year === 1 ? effectiveGrowthRate : a.growthFloor);
+    const priced = computeCostForGrownSize(size, a);
+    out.push({
+      year,
+      projectedSizeGb: size,
+      listPrice: priced.listPrice,
+      opex: priced.opex,
+      creditsPerMonth: priced.snowflakeCredits.creditsPerMonth,
+    });
+  }
+  return {
+    years: out,
+    totalListPrice: out.reduce((sum, y) => sum + y.listPrice, 0),
   };
 }

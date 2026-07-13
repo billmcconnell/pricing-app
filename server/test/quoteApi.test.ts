@@ -222,6 +222,52 @@ describe('GET /api/quote', () => {
     expect(body.breakdown.grossMargin).toBe(0.6);
   });
 
+  it('includes a Multi-Year Projection (default 5 years) whose year 1 matches the quote', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/quote?environment=OTQV',
+      headers: { cookie: salesCookie },
+    });
+    const body = res.json() as {
+      listPrice: number;
+      grownSizeGb: number;
+      projection: {
+        years: { year: number; projectedSizeGb: number; listPrice: number }[];
+        totalListPrice: number;
+      };
+    };
+    expect(body.projection.years).toHaveLength(5);
+    expect(body.projection.years[0].projectedSizeGb).toBeCloseTo(body.grownSizeGb, 9);
+    expect(body.projection.years[0].listPrice).toBe(body.listPrice);
+    expect(body.projection.totalListPrice).toBe(
+      body.projection.years.reduce((sum, y) => sum + y.listPrice, 0),
+    );
+    // Sales projection rows carry size and price only.
+    const keys = collectKeys(body.projection);
+    for (const key of ['opex', 'creditsPerMonth', ...COST_INTERNALS]) {
+      expect(keys.has(key), key).toBe(false);
+    }
+  });
+
+  it('honors the years parameter and validates it', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/quote?environment=OTQV&years=8',
+      headers: { cookie: salesCookie },
+    });
+    const body = res.json() as { projection: { years: unknown[] } };
+    expect(body.projection.years).toHaveLength(8);
+
+    for (const bad of ['0', '31', '2.5', 'ten']) {
+      const invalid = await app.inject({
+        method: 'GET',
+        url: `/api/quote?environment=OTQV&years=${bad}`,
+        headers: { cookie: salesCookie },
+      });
+      expect(invalid.statusCode, `years=${bad}`).toBe(400);
+    }
+  });
+
   it('unknown Environment is a 404, missing parameter a 400', async () => {
     const unknown = await app.inject({
       method: 'GET',

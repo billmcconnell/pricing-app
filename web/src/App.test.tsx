@@ -146,28 +146,66 @@ const rumbQuote = {
   growthDefaulted: false,
   grownSizeGb: 140,
   listPrice: 40000,
+  projection: {
+    years: [
+      { year: 1, projectedSizeGb: 140, listPrice: 40000 },
+      { year: 2, projectedSizeGb: 182, listPrice: 43000 },
+      { year: 3, projectedSizeGb: 236.6, listPrice: 47000 },
+      { year: 4, projectedSizeGb: 307.58, listPrice: 52000 },
+      { year: 5, projectedSizeGb: 399.85, listPrice: 58500 },
+    ],
+    totalListPrice: 240500,
+  },
   quotedAt: '2026-07-13T00:00:00.000Z',
 };
 
 it('Sales finds a Customer by Account Name and gets a List Price without cost internals', async () => {
   stubFetch(salesUser, {
     '/api/quote/customers': quoteCustomers,
-    '/api/quote?environment=RUMB': rumbQuote,
+    '/api/quote?environment=RUMB&years=5': rumbQuote,
   });
   renderApp();
   fireEvent.change(await screen.findByRole('searchbox'), { target: { value: 'radiant' } });
   fireEvent.click(await screen.findByRole('button', { name: /RUMB — Radiant-Macaw/ }));
   expect(await screen.findByText(/Year-1 List Price/)).toBeDefined();
-  expect(screen.getByText(/\$40,000/)).toBeDefined();
+  expect(screen.getAllByText(/\$40,000/).length).toBeGreaterThan(0);
   expect(screen.queryByText(/OPEX/)).toBeNull();
   expect(screen.queryByText(/margin/i)).toBeNull();
   expect(screen.queryByText(/contingency/i)).toBeNull();
 });
 
+it('shows the Multi-Year Projection with per-year prices and the total', async () => {
+  stubFetch(salesUser, {
+    '/api/quote/customers': quoteCustomers,
+    '/api/quote?environment=RUMB&years=5': rumbQuote,
+    '/api/quote?environment=RUMB&years=3': {
+      ...rumbQuote,
+      projection: {
+        years: rumbQuote.projection.years.slice(0, 3),
+        totalListPrice: 130000,
+      },
+    },
+  });
+  renderApp();
+  fireEvent.change(await screen.findByRole('searchbox'), { target: { value: 'RUMB' } });
+  fireEvent.click(await screen.findByRole('button', { name: /RUMB — Radiant-Macaw/ }));
+
+  expect(await screen.findByRole('heading', { name: 'Multi-Year Projection' })).toBeDefined();
+  expect(screen.getByText(/\$58,500/)).toBeDefined(); // year 5
+  expect(screen.getByText('Total (5 years)')).toBeDefined();
+  expect(screen.getByText(/\$240,500/)).toBeDefined();
+
+  // Changing the years input re-fetches the projection.
+  fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '3' } });
+  expect(await screen.findByText('Total (3 years)')).toBeDefined();
+  expect(screen.getByText(/\$130,000/)).toBeDefined();
+  expect(screen.queryByText(/\$58,500/)).toBeNull();
+});
+
 it('a Customer with several Environments requires choosing one', async () => {
   stubFetch(salesUser, {
     '/api/quote/customers': quoteCustomers,
-    '/api/quote?environment=MOLH_imos_MPCC_PROD': {
+    '/api/quote?environment=MOLH_imos_MPCC_PROD&years=5': {
       ...rumbQuote,
       identifier: 'MOLH_imos_MPCC_PROD',
       companyCode: 'MOLH',
@@ -194,7 +232,7 @@ it('an unpriceable Customer shows the no-measured-Environment state, not an erro
 it('an Admin sees the cost breakdown on the same quote screen', async () => {
   stubFetch(adminUser, {
     '/api/quote/customers': quoteCustomers,
-    '/api/quote?environment=RUMB': {
+    '/api/quote?environment=RUMB&years=5': {
       ...rumbQuote,
       breakdown: {
         inputs: { dbSizeGb: 100, growthRate: 0.4, effectiveGrowthRate: 0.4 },
