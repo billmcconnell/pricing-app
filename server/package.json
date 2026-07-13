@@ -6,6 +6,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "test": "vitest run",
+    "report:parity": "tsx src/scripts/parityReport.ts",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
