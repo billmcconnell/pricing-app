@@ -53,9 +53,9 @@ it('shows the login screen when unauthenticated', async () => {
 });
 
 it('a Sales user sees quotes but no admin navigation', async () => {
-  stubFetch(salesUser);
+  stubFetch(salesUser, { '/api/quote/customers': [] });
   renderApp();
-  expect(await screen.findByRole('heading', { name: 'Data Lake Pricing' })).toBeDefined();
+  expect(await screen.findByRole('heading', { name: 'Quotes' })).toBeDefined();
   expect(screen.getByRole('link', { name: 'Quotes' })).toBeDefined();
   expect(screen.queryByRole('link', { name: 'Users' })).toBeNull();
   expect(screen.queryByRole('link', { name: 'Cost Model' })).toBeNull();
@@ -111,10 +111,119 @@ it('the Imports page lists Environments with staleness and missing flags', async
 });
 
 it('a Sales user visiting an admin route is sent back home', async () => {
-  stubFetch(salesUser);
+  stubFetch(salesUser, { '/api/quote/customers': [] });
   renderApp('/admin/users');
-  expect(await screen.findByRole('heading', { name: 'Data Lake Pricing' })).toBeDefined();
+  expect(await screen.findByRole('heading', { name: 'Quotes' })).toBeDefined();
   expect(screen.queryByRole('heading', { name: 'Users' })).toBeNull();
+});
+
+const quoteCustomers = [
+  {
+    companyCode: 'RUMB',
+    accountName: 'Radiant-Macaw',
+    environments: [
+      { identifier: 'RUMB', dbSizeGb: 100, growthRate: 0.4, effectiveGrowthRate: 0.4, growthDefaulted: false },
+    ],
+  },
+  {
+    companyCode: 'MOLH',
+    accountName: 'Mighty-Ocelot',
+    environments: [
+      { identifier: 'MOLH_imos_MPCC_PROD', dbSizeGb: 171.96, growthRate: 0.3, effectiveGrowthRate: 0.3, growthDefaulted: false },
+      { identifier: 'MOLH_imos_MOLDB_prod', dbSizeGb: 160.27, growthRate: 0.3, effectiveGrowthRate: 0.3, growthDefaulted: false },
+    ],
+  },
+  { companyCode: 'ZZZZ', accountName: 'Zeta-Zebra', environments: [] },
+];
+
+const rumbQuote = {
+  identifier: 'RUMB',
+  companyCode: 'RUMB',
+  accountName: 'Radiant-Macaw',
+  dbSizeGb: 100,
+  growthRate: 0.4,
+  effectiveGrowthRate: 0.4,
+  growthDefaulted: false,
+  grownSizeGb: 140,
+  listPrice: 40000,
+  quotedAt: '2026-07-13T00:00:00.000Z',
+};
+
+it('Sales finds a Customer by Account Name and gets a List Price without cost internals', async () => {
+  stubFetch(salesUser, {
+    '/api/quote/customers': quoteCustomers,
+    '/api/quote?environment=RUMB': rumbQuote,
+  });
+  renderApp();
+  fireEvent.change(await screen.findByRole('searchbox'), { target: { value: 'radiant' } });
+  fireEvent.click(await screen.findByRole('button', { name: /RUMB — Radiant-Macaw/ }));
+  expect(await screen.findByText(/Year-1 List Price/)).toBeDefined();
+  expect(screen.getByText(/\$40,000/)).toBeDefined();
+  expect(screen.queryByText(/OPEX/)).toBeNull();
+  expect(screen.queryByText(/margin/i)).toBeNull();
+  expect(screen.queryByText(/contingency/i)).toBeNull();
+});
+
+it('a Customer with several Environments requires choosing one', async () => {
+  stubFetch(salesUser, {
+    '/api/quote/customers': quoteCustomers,
+    '/api/quote?environment=MOLH_imos_MPCC_PROD': {
+      ...rumbQuote,
+      identifier: 'MOLH_imos_MPCC_PROD',
+      companyCode: 'MOLH',
+      accountName: 'Mighty-Ocelot',
+      listPrice: 33500,
+    },
+  });
+  renderApp();
+  fireEvent.change(await screen.findByRole('searchbox'), { target: { value: 'MOLH' } });
+  fireEvent.click(await screen.findByRole('button', { name: /MOLH — Mighty-Ocelot/ }));
+  expect(await screen.findByText(/each is priced separately/)).toBeDefined();
+  fireEvent.click(screen.getByRole('button', { name: /MOLH_imos_MPCC_PROD/ }));
+  expect(await screen.findByText(/\$33,500/)).toBeDefined();
+});
+
+it('an unpriceable Customer shows the no-measured-Environment state, not an error', async () => {
+  stubFetch(salesUser, { '/api/quote/customers': quoteCustomers });
+  renderApp();
+  fireEvent.change(await screen.findByRole('searchbox'), { target: { value: 'zeta' } });
+  fireEvent.click(await screen.findByRole('button', { name: /ZZZZ.*unpriceable/ }));
+  expect(await screen.findByText(/has no measured Environment yet/)).toBeDefined();
+});
+
+it('an Admin sees the cost breakdown on the same quote screen', async () => {
+  stubFetch(adminUser, {
+    '/api/quote/customers': quoteCustomers,
+    '/api/quote?environment=RUMB': {
+      ...rumbQuote,
+      breakdown: {
+        inputs: { dbSizeGb: 100, growthRate: 0.4, effectiveGrowthRate: 0.4 },
+        grownSizeGb: 140,
+        fixedCosts: { dms: 122.7, dataloadAlerts: 1123.2, total: 1245.9 },
+        variableCosts: {
+          sqlToDmsTransfer: 4.48,
+          dmsToS3Transfer: 4.48,
+          sqs: 0,
+          s3Storage: 85.01,
+          s3DataTransfer: 40.32,
+          snowflakeStorage: 38.64,
+          snowpipe: 727.27,
+          serverlessTasks: 1048.32,
+          total: 1948.52,
+        },
+        contingency: 194.85,
+        snowflakeCredits: { creditsPerMonth: 250, cost: 11700 },
+        opex: 15089.27,
+        grossMargin: 0.6,
+        listPrice: 40000,
+      },
+    },
+  });
+  renderApp();
+  fireEvent.change(await screen.findByRole('searchbox'), { target: { value: 'RUMB' } });
+  fireEvent.click(await screen.findByRole('button', { name: /RUMB — Radiant-Macaw/ }));
+  expect(await screen.findByText(/Cost breakdown \(Admin only\)/)).toBeDefined();
+  expect(screen.getByText('OPEX')).toBeDefined();
 });
 
 it('an Admin sees the admin navigation and users screen', async () => {

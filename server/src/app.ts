@@ -100,8 +100,65 @@ export function buildApp(db: Db) {
 
   app.get('/api/auth/me', async (req) => toPublicUser(req.user!));
 
+  // Sales-safe customer list for the quote screen: identifiers, sizes, and growth —
+  // no OPEX, margin, or contingency. Unpriceable Customers (no Environment) included.
+  app.get('/api/quote/customers', async () => {
+    const customerRows = db.select().from(customers).all();
+    const environmentRows = db.select().from(environments).all();
+    const growthFloor = loadCostModelAssumptions(db).growthFloor;
+    const byCustomer = new Map<number, typeof environmentRows>();
+    for (const env of environmentRows) {
+      const list = byCustomer.get(env.customerId) ?? [];
+      list.push(env);
+      byCustomer.set(env.customerId, list);
+    }
+    return customerRows
+      .sort((a, b) => a.companyCode.localeCompare(b.companyCode))
+      .map((c) => ({
+        companyCode: c.companyCode,
+        accountName: c.accountName,
+        environments: (byCustomer.get(c.id) ?? []).map((e) => ({
+          identifier: e.identifier,
+          dbSizeGb: e.dbSizeGb,
+          growthRate: e.growthRate,
+          effectiveGrowthRate: Math.max(e.growthRate ?? growthFloor, growthFloor),
+          growthDefaulted: e.growthRate === null,
+        })),
+      }));
+  });
+
+  // Quotes are ephemeral — this computes and returns, persisting nothing.
+  app.get<{ Querystring: { environment?: string } }>('/api/quote', async (req, reply) => {
+    const identifier = req.query.environment;
+    if (!identifier) return reply.code(400).send({ error: 'environment is required' });
+    const env = db.select().from(environments).where(eq(environments.identifier, identifier)).get();
+    if (!env) return reply.code(404).send({ error: 'unknown Environment' });
+    const customer = db.select().from(customers).where(eq(customers.id, env.customerId)).get()!;
+
+    const a = loadCostModelAssumptions(db);
+    const breakdown = computeCost(
+      { dbSizeGb: env.dbSizeGb, growthRate: env.growthRate ?? a.growthFloor },
+      a,
+    );
+    const quote = {
+      identifier: env.identifier,
+      companyCode: customer.companyCode,
+      accountName: customer.accountName,
+      dbSizeGb: env.dbSizeGb,
+      growthRate: env.growthRate,
+      effectiveGrowthRate: breakdown.inputs.effectiveGrowthRate,
+      growthDefaulted: env.growthRate === null,
+      grownSizeGb: breakdown.grownSizeGb,
+      listPrice: breakdown.listPrice,
+      quotedAt: new Date().toISOString(),
+    };
+    // The role boundary is enforced in the payload, not just the UI:
+    // Sales never receives OPEX, margin, contingency, or cost lines.
+    return req.user!.role === 'admin' ? { ...quote, breakdown } : quote;
+  });
+
   // Full cost breakdown (OPEX, margin, contingency) is Admin-only; the Sales-facing
-  // quote screen (issue 06) will expose List Price without the internals.
+  // quote screen exposes List Price without the internals (see /api/quote).
   app.get<{ Querystring: { dbSizeGb?: string; growthRate?: string } }>(
     '/api/cost-model/compute',
     { preHandler: requireAdmin },
