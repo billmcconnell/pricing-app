@@ -10,7 +10,8 @@ RUN pnpm install --frozen-lockfile
 COPY server server
 COPY web web
 RUN pnpm --filter @pricing-app/server build && pnpm --filter @pricing-app/web build
-RUN pnpm --filter @pricing-app/server --prod deploy /out
+# --legacy: plain file copy; this workspace has no injected cross-package deps.
+RUN pnpm --filter @pricing-app/server --prod deploy --legacy /out
 
 # Runtime: node + rclone (backups to Google Drive). SQLite lives on the mounted
 # volume at /data (see fly.toml); the app's own auth is the only access gate.
