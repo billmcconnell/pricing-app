@@ -16,8 +16,8 @@ rotated (change `change-me` immediately).
 2. **Create the app and volume** (from the repo root):
 
    ```sh
-   fly apps create pricing-app          # pick another name if taken; update fly.toml
-   fly volumes create data --size 1 --region iad -a pricing-app
+   fly apps create bmc-pricing-app          # pick another name if taken; update fly.toml
+   fly volumes create data --size 1 --region iad -a bmc-pricing-app
    ```
 
    (`iad` must match `primary_region` in `fly.toml` — change both if you prefer
@@ -41,7 +41,7 @@ rotated (change `change-me` immediately).
 4. **Set secrets**:
 
    ```sh
-   fly secrets set -a pricing-app \
+   fly secrets set -a bmc-pricing-app \
      ADMIN_EMAIL='you@example.com' \
      ADMIN_PASSWORD='<strong initial password>' \
      RCLONE_CONF="$(cat ~/.config/rclone/rclone.conf)"
@@ -61,11 +61,11 @@ That's the whole procedure from a clean checkout: the Dockerfile builds the web
 bundle and the server, and Fly swaps the machine. Verify with:
 
 ```sh
-fly status -a pricing-app
-curl -s https://pricing-app.fly.dev/api/health
+fly status -a bmc-pricing-app
+curl -s https://bmc-pricing-app.fly.dev/api/health
 ```
 
-The app is at `https://pricing-app.fly.dev` (stable URL, HTTPS enforced).
+The app is at `https://bmc-pricing-app.fly.dev` (stable URL, HTTPS enforced).
 
 ## Backups
 
@@ -76,9 +76,9 @@ pruned after each successful upload. The snapshot uses SQLite's online backup
 API, so it is safe while the app is serving.
 
 - Check what's there: `rclone ls gdrive:pricing-app-backups`
-- Trigger one manually on the machine: `fly ssh console -a pricing-app -C
+- Trigger one manually on the machine: `fly ssh console -a bmc-pricing-app -C
   "node /app/server/dist/scripts/backup.js"`
-- Watch the scheduler in logs: `fly logs -a pricing-app` (look for "backup uploaded").
+- Watch the scheduler in logs: `fly logs -a bmc-pricing-app` (look for "backup uploaded").
 
 ## Restore
 
@@ -94,9 +94,9 @@ Production restore:
 
 ```sh
 rclone copy gdrive:pricing-app-backups/pricing-app-<stamp>.db.gz /tmp/
-fly ssh sftp shell -a pricing-app    # put /tmp/pricing-app-<stamp>.db.gz /data/restore.db.gz
-fly ssh console -a pricing-app -C "node /app/server/dist/scripts/restore.js /data/restore.db.gz /data/app.db"
-fly apps restart pricing-app
+fly ssh sftp shell -a bmc-pricing-app    # put /tmp/pricing-app-<stamp>.db.gz /data/restore.db.gz
+fly ssh console -a bmc-pricing-app -C "node /app/server/dist/scripts/restore.js /data/restore.db.gz /data/app.db"
+fly apps restart bmc-pricing-app
 ```
 
 The restore script verifies `PRAGMA integrity_check` before swapping the file and
