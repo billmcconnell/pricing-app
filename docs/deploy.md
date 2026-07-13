@@ -31,6 +31,13 @@ rotated (change `change-me` immediately).
    rclone mkdir gdrive:pricing-app-backups
    ```
 
+   Leave `client_id` **blank** at the prompt (a non-blank junk value silently breaks
+   the OAuth flow with "empty token found"). Done 2026-07-13. Note: rclone's shared
+   Google client ID is being retired during 2026 — before then, create a personal
+   client ID (https://rclone.org/drive/#making-your-own-client-id), add it with
+   `rclone config update gdrive client_id <id> client_secret <secret>`, run
+   `rclone config reconnect gdrive:`, and re-set the `RCLONE_CONF` Fly secret.
+
 4. **Set secrets**:
 
    ```sh

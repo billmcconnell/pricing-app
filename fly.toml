@@ -1,6 +1,6 @@
 # Fly.io config — see docs/deploy.md for the full runbook.
 # `fly launch` may offer to overwrite this file; keep these settings.
-app = "pricing-app" # rename if taken: fly apps create <name>, then update here
+app = "bmc-pricing-app" # rename if taken: fly apps create <name>, then update here
 primary_region = "iad" # pick the region closest to the team
 
 [build]
