@@ -2,7 +2,11 @@ import cookie from '@fastify/cookie';
 import multipart from '@fastify/multipart';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import { desc, eq } from 'drizzle-orm';
-import { assumptionValue, loadCostModelAssumptions } from './assumptions.js';
+import {
+  assumptionValue,
+  loadCostModelAssumptions,
+  validateAssumptionChange,
+} from './assumptions.js';
 import {
   createSession,
   destroySession,
@@ -25,7 +29,16 @@ import {
   diffGrowthRate,
   diffSpaceused,
 } from './imports.js';
-import { appMeta, customers, environments, imports, users, type User } from './schema.js';
+import {
+  appMeta,
+  assumptionChanges,
+  assumptions,
+  customers,
+  environments,
+  imports,
+  users,
+  type User,
+} from './schema.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -345,6 +358,60 @@ export function buildApp(db: Db) {
           })),
         })),
     };
+  });
+
+  app.get('/api/assumptions', { preHandler: requireAdmin }, async () => {
+    return db.select().from(assumptions).all();
+  });
+
+  app.patch<{ Params: { key: string }; Body: { value?: number } }>(
+    '/api/assumptions/:key',
+    { preHandler: requireAdmin },
+    async (req, reply) => {
+      const row = db.select().from(assumptions).where(eq(assumptions.key, req.params.key)).get();
+      if (!row) return reply.code(404).send({ error: 'unknown Assumption' });
+      const value = req.body?.value;
+      if (typeof value !== 'number') {
+        return reply.code(400).send({ error: 'value (number) is required' });
+      }
+      const currentValues = new Map(
+        db.select().from(assumptions).all().map((a) => [a.key, a.value]),
+      );
+      const invalid = validateAssumptionChange(row.key, value, row.unit, currentValues);
+      if (invalid) return reply.code(400).send({ error: invalid });
+      // A save with the same value is a no-op — no change-log entry.
+      if (value === row.value) return row;
+      const updated = db.transaction((tx) => {
+        const next = tx
+          .update(assumptions)
+          .set({ value })
+          .where(eq(assumptions.key, row.key))
+          .returning()
+          .get();
+        tx.insert(assumptionChanges)
+          .values({ key: row.key, oldValue: row.value, newValue: value, changedBy: req.user!.email })
+          .run();
+        return next;
+      });
+      return updated;
+    },
+  );
+
+  app.get('/api/assumptions/changes', { preHandler: requireAdmin }, async () => {
+    return db
+      .select({
+        id: assumptionChanges.id,
+        key: assumptionChanges.key,
+        label: assumptions.label,
+        oldValue: assumptionChanges.oldValue,
+        newValue: assumptionChanges.newValue,
+        changedBy: assumptionChanges.changedBy,
+        changedAt: assumptionChanges.changedAt,
+      })
+      .from(assumptionChanges)
+      .innerJoin(assumptions, eq(assumptionChanges.key, assumptions.key))
+      .orderBy(desc(assumptionChanges.changedAt), desc(assumptionChanges.id))
+      .all();
   });
 
   app.get('/api/users', { preHandler: requireAdmin }, async () => {

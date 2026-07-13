@@ -37,6 +37,20 @@ export const assumptions = sqliteTable('assumptions', {
 
 export type Assumption = typeof assumptions.$inferSelect;
 
+/** Replaces the Excel Change Log tab: every Assumption edit, append-only. */
+export const assumptionChanges = sqliteTable('assumption_changes', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  key: text('key')
+    .notNull()
+    .references(() => assumptions.key),
+  oldValue: real('old_value').notNull(),
+  newValue: real('new_value').notNull(),
+  changedBy: text('changed_by').notNull(),
+  changedAt: integer('changed_at', { mode: 'timestamp' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 export const customers = sqliteTable('customers', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   companyCode: text('company_code').notNull().unique(),

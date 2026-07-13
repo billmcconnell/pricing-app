@@ -60,6 +60,53 @@ it('a Sales user sees quotes but no admin navigation', async () => {
   expect(screen.queryByRole('link', { name: 'Users' })).toBeNull();
   expect(screen.queryByRole('link', { name: 'Cost Model' })).toBeNull();
   expect(screen.queryByRole('link', { name: 'Imports' })).toBeNull();
+  expect(screen.queryByRole('link', { name: 'Assumptions' })).toBeNull();
+});
+
+it('the Assumptions page shows grouped editable values and the change log, and saves edits', async () => {
+  stubFetch(adminUser, {
+    '/api/assumptions': [
+      { key: 'snowflake_credit_price', value: 3.9, label: 'Snowflake credit price (EU list price)', category: 'unit-cost', unit: '$/credit' },
+      { key: 'contingency_rate', value: 0.1, label: 'Contingency on variable costs', category: 'behavioral', unit: 'ratio' },
+      { key: 'gross_margin', value: 0.6, label: 'Gross margin: List Price = OPEX ÷ (1 − margin) (ADR-0001)', category: 'commercial', unit: 'ratio' },
+    ],
+    '/api/assumptions/changes': [
+      {
+        id: 1,
+        key: 'gross_margin',
+        label: 'Gross margin: List Price = OPEX ÷ (1 − margin) (ADR-0001)',
+        oldValue: 0.6,
+        newValue: 0.55,
+        changedBy: 'admin@example.com',
+        changedAt: '2026-07-13T10:00:00.000Z',
+      },
+    ],
+    '/api/assumptions/gross_margin': { key: 'gross_margin', value: 0.55 },
+  });
+  renderApp('/admin/assumptions');
+
+  expect(await screen.findByRole('heading', { name: 'Unit costs' })).toBeDefined();
+  expect(screen.getByRole('heading', { name: 'Behavioral assumptions' })).toBeDefined();
+  expect(screen.getByRole('heading', { name: 'Commercial policy' })).toBeDefined();
+  expect(screen.getByText('Snowflake credit price (EU list price)')).toBeDefined();
+  expect(screen.getByText('0.6 → 0.55')).toBeDefined();
+  // Nav shows the logged-in email too; the change log adds a second occurrence.
+  expect(screen.getAllByText('admin@example.com')).toHaveLength(2);
+
+  const marginInput = screen.getByRole('textbox', { name: /Gross margin/ });
+  fireEvent.change(marginInput, { target: { value: '0.55' } });
+  fireEvent.click(marginInput.closest('tr')!.querySelector('button')!);
+
+  const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>;
+  await screen.findByRole('heading', { name: 'Change log' });
+  expect(
+    fetchMock.mock.calls.some(
+      ([url, init]) =>
+        url === '/api/assumptions/gross_margin' &&
+        (init as RequestInit | undefined)?.method === 'PATCH' &&
+        (init as RequestInit).body === JSON.stringify({ value: 0.55 }),
+    ),
+  ).toBe(true);
 });
 
 it('the Imports page lists Environments with staleness and missing flags', async () => {

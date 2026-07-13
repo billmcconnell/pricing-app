@@ -45,6 +45,41 @@ export const ASSUMPTION_SEEDS: Seed[] = [
   { key: 'credit_tier_4_credits', value: 500, label: 'Snowflake credit allocation, tier 4', category: 'commercial', unit: 'credits/month' },
 ];
 
+const TIER_THRESHOLD_KEYS = ['credit_tier_2_over_gb', 'credit_tier_3_over_gb', 'credit_tier_4_over_gb'];
+
+/**
+ * Validate a proposed Assumption edit. Returns an error message, or null when valid.
+ * `currentValues` supplies the other Assumptions (for cross-field rules like tier ordering).
+ */
+export function validateAssumptionChange(
+  key: string,
+  value: number,
+  unit: string | null,
+  currentValues: Map<string, number>,
+): string | null {
+  if (!Number.isFinite(value)) return 'value must be a number';
+
+  // The margin divides: 1 − margin must stay positive.
+  if (key === 'gross_margin') {
+    return value >= 0 && value < 1 ? null : 'gross margin must be at least 0 and below 1';
+  }
+  // These divide or step — zero would break the model.
+  if (key === 'price_rounding' || key === 'dms_tasks_per_instance') {
+    return value > 0 ? null : 'value must be greater than 0';
+  }
+  if (unit === 'ratio') {
+    return value >= 0 && value <= 1 ? null : 'ratio must be between 0 and 1';
+  }
+  if (TIER_THRESHOLD_KEYS.includes(key)) {
+    const proposed = TIER_THRESHOLD_KEYS.map((k) => (k === key ? value : currentValues.get(k)!));
+    const increasing = proposed.every((v, i) => v > 0 && (i === 0 || v > proposed[i - 1]));
+    return increasing
+      ? null
+      : `credit tier thresholds must be strictly increasing (proposed: ${proposed.join(' / ')} GB)`;
+  }
+  return value >= 0 ? null : 'value must not be negative';
+}
+
 /** Read a single Assumption value not consumed by the cost model (e.g. the guardrail share). */
 export function assumptionValue(db: Db, key: string): number {
   const row = db.select().from(assumptions).where(eq(assumptions.key, key)).get();
