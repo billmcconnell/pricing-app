@@ -21,9 +21,12 @@ export function Login() {
   }
 
   return (
-    <main>
-      <h1>Data Lake Pricing</h1>
-      <form onSubmit={onSubmit}>
+    <main className="login-screen">
+      <div className="login-card">
+        <h1 className="wordmark">
+          Data Lake<small>Pricing</small>
+        </h1>
+        <form onSubmit={onSubmit}>
         <label>
           Email
           <input
@@ -44,11 +47,12 @@ export function Login() {
             required
           />
         </label>
-        <button type="submit" disabled={submitting}>
-          Sign in
-        </button>
-        {error && <p role="alert">{error}</p>}
-      </form>
+          <button type="submit" disabled={submitting}>
+            Sign in
+          </button>
+          {error && <p role="alert">{error}</p>}
+        </form>
+      </div>
     </main>
   );
 }

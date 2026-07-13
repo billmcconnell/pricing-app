@@ -30,30 +30,30 @@ export function CostBreakdownTable({ breakdown }: { breakdown: CostBreakdown }) 
         <tr>
           <th colSpan={2}>Fixed costs</th>
         </tr>
-        <tr><td>AWS DMS (rep instance overhead)</td><td>{usd(breakdown.fixedCosts.dms)}</td></tr>
-        <tr><td>Snowflake DATALOAD alerts</td><td>{usd(breakdown.fixedCosts.dataloadAlerts)}</td></tr>
-        <tr><td><strong>Fixed costs total</strong></td><td>{usd(breakdown.fixedCosts.total)}</td></tr>
+        <tr><td>AWS DMS (rep instance overhead)</td><td className="num">{usd(breakdown.fixedCosts.dms)}</td></tr>
+        <tr><td>Snowflake DATALOAD alerts</td><td className="num">{usd(breakdown.fixedCosts.dataloadAlerts)}</td></tr>
+        <tr><td><strong>Fixed costs total</strong></td><td className="num">{usd(breakdown.fixedCosts.total)}</td></tr>
         <tr>
           <th colSpan={2}>Variable costs</th>
         </tr>
-        <tr><td>AWS data transfer (SQL→DMS)</td><td>{usd(breakdown.variableCosts.sqlToDmsTransfer)}</td></tr>
-        <tr><td>AWS data transfer (DMS→S3)</td><td>{usd(breakdown.variableCosts.dmsToS3Transfer)}</td></tr>
-        <tr><td>AWS SQS</td><td>{usd(breakdown.variableCosts.sqs)}</td></tr>
-        <tr><td>AWS S3 storage</td><td>{usd(breakdown.variableCosts.s3Storage)}</td></tr>
-        <tr><td>AWS S3 data transfer</td><td>{usd(breakdown.variableCosts.s3DataTransfer)}</td></tr>
-        <tr><td>Snowflake storage</td><td>{usd(breakdown.variableCosts.snowflakeStorage)}</td></tr>
-        <tr><td>Snowflake Snowpipe</td><td>{usd(breakdown.variableCosts.snowpipe)}</td></tr>
-        <tr><td>Snowflake serverless tasks</td><td>{usd(breakdown.variableCosts.serverlessTasks)}</td></tr>
-        <tr><td><strong>Variable costs total</strong></td><td>{usd(breakdown.variableCosts.total)}</td></tr>
+        <tr><td>AWS data transfer (SQL→DMS)</td><td className="num">{usd(breakdown.variableCosts.sqlToDmsTransfer)}</td></tr>
+        <tr><td>AWS data transfer (DMS→S3)</td><td className="num">{usd(breakdown.variableCosts.dmsToS3Transfer)}</td></tr>
+        <tr><td>AWS SQS</td><td className="num">{usd(breakdown.variableCosts.sqs)}</td></tr>
+        <tr><td>AWS S3 storage</td><td className="num">{usd(breakdown.variableCosts.s3Storage)}</td></tr>
+        <tr><td>AWS S3 data transfer</td><td className="num">{usd(breakdown.variableCosts.s3DataTransfer)}</td></tr>
+        <tr><td>Snowflake storage</td><td className="num">{usd(breakdown.variableCosts.snowflakeStorage)}</td></tr>
+        <tr><td>Snowflake Snowpipe</td><td className="num">{usd(breakdown.variableCosts.snowpipe)}</td></tr>
+        <tr><td>Snowflake serverless tasks</td><td className="num">{usd(breakdown.variableCosts.serverlessTasks)}</td></tr>
+        <tr><td><strong>Variable costs total</strong></td><td className="num">{usd(breakdown.variableCosts.total)}</td></tr>
         <tr>
           <th colSpan={2}>Other</th>
         </tr>
-        <tr><td>Contingency</td><td>{usd(breakdown.contingency)}</td></tr>
+        <tr><td>Contingency</td><td className="num">{usd(breakdown.contingency)}</td></tr>
         <tr>
           <td>Snowflake credits ({breakdown.snowflakeCredits.creditsPerMonth}/month)</td>
-          <td>{usd(breakdown.snowflakeCredits.cost)}</td>
+          <td className="num">{usd(breakdown.snowflakeCredits.cost)}</td>
         </tr>
-        <tr><td><strong>OPEX</strong></td><td><strong>{usd(breakdown.opex)}</strong></td></tr>
+        <tr><td><strong>OPEX</strong></td><td className="num"><strong>{usd(breakdown.opex)}</strong></td></tr>
       </tbody>
     </table>
   );

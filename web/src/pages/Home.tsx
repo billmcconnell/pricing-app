@@ -49,6 +49,11 @@ function gb(n: number) {
   return `${n.toLocaleString('en-US', { maximumFractionDigits: 2 })} GB`;
 }
 
+// List Prices are always whole dollars ($500 steps) — no cents on the rate card.
+function usdWhole(n: number) {
+  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+}
+
 function pct(ratio: number) {
   return `${(ratio * 100).toLocaleString('en-US', { maximumFractionDigits: 2 })}%`;
 }
@@ -130,7 +135,7 @@ export function Home() {
   return (
     <section>
       <h1>Quotes</h1>
-      <label>
+      <label className="customer-search">
         Customer
         <input
           type="search"
@@ -144,19 +149,26 @@ export function Home() {
         />
       </label>
 
+      {customers.length === 0 && (
+        <p className="note">
+          Nothing to quote yet — no database sizes have been imported. An Admin uploads the
+          DB-size feed on the Imports screen first.
+        </p>
+      )}
+
       {query.trim() !== '' && !selected && (
-        <ul>
+        <ul className="search-results">
           {matches.map((c) => (
             <li key={c.companyCode}>
               <button onClick={() => pickCustomer(c)}>
-                {c.companyCode}
+                <span className="code">{c.companyCode}</span>
                 {c.accountName ? ` — ${c.accountName}` : ''}
                 {c.environments.length === 0 && <em> (unpriceable)</em>}
                 {c.environments.length > 1 && ` (${c.environments.length} Environments)`}
               </button>
             </li>
           ))}
-          {matches.length === 0 && <li>No matching Customers.</li>}
+          {matches.length === 0 && customers.length > 0 && <li>No matching Customers.</li>}
         </ul>
       )}
 
@@ -177,11 +189,11 @@ export function Home() {
             {selected.companyCode} has {selected.environments.length} Environments — each is
             priced separately:
           </p>
-          <ul>
+          <ul className="env-picker">
             {selected.environments.map((e) => (
               <li key={e.identifier}>
                 <button onClick={() => setEnvironment(e.identifier)}>
-                  {e.identifier} ({gb(e.dbSizeGb)})
+                  <span className="code">{e.identifier}</span> ({gb(e.dbSizeGb)})
                 </button>
               </li>
             ))}
@@ -190,28 +202,37 @@ export function Home() {
       )}
 
       {quote && (
-        <article>
+        <article className="rate-card">
           <h2>
             {quote.companyCode}
-            {quote.accountName ? ` — ${quote.accountName}` : ''} · {quote.identifier}
+            {quote.accountName ? ` — ${quote.accountName}` : ''}{' '}
+            <span className="identifier">· {quote.identifier}</span>
           </h2>
-          <p>
-            Year-1 List Price: <strong>{usd(quote.listPrice)}</strong> / year{' '}
+          <p className="price-hero">
+            <span className="price-label">Year-1 List Price</span>
+            <strong>{usdWhole(quote.listPrice)}</strong>
+            <span className="price-unit">/ year</span>
             <button onClick={() => void copySummary(quote)}>Copy summary</button>
             {copied && <span role="status"> Copied to clipboard.</span>}
           </p>
-          <ul>
-            <li>IMOS DB Size: {gb(quote.dbSizeGb)}</li>
+          <ul className="quote-inputs">
             <li>
-              Growth Rate:{' '}
-              {quote.growthRate === null ? (
-                <em>none imported — floor applied</em>
-              ) : (
-                pct(quote.growthRate)
-              )}{' '}
-              (effective {pct(quote.effectiveGrowthRate)})
+              IMOS DB Size <span className="num">{gb(quote.dbSizeGb)}</span>
             </li>
-            <li>Grown size: {gb(quote.grownSizeGb)}</li>
+            <li>
+              Growth Rate{' '}
+              <span className="num">
+                {quote.growthRate === null ? (
+                  <em>none imported — floor applied</em>
+                ) : (
+                  pct(quote.growthRate)
+                )}{' '}
+                (effective {pct(quote.effectiveGrowthRate)})
+              </span>
+            </li>
+            <li>
+              Grown size <span className="num">{gb(quote.grownSizeGb)}</span>
+            </li>
           </ul>
           {quote.guardrail.triggered === true && (
             <p role="alert">
@@ -221,7 +242,7 @@ export function Home() {
             </p>
           )}
           {quote.guardrail.triggered === null && (
-            <p>
+            <p className="note">
               <em>ACV unknown for this Customer — Proportionality Guardrail not evaluated.</em>
             </p>
           )}
@@ -243,30 +264,30 @@ export function Home() {
           <table>
             <thead>
               <tr>
-                <th>Year</th>
-                <th>Projected size</th>
-                <th>List Price</th>
+                <th className="num">Year</th>
+                <th className="num">Projected size</th>
+                <th className="num">List Price</th>
               </tr>
             </thead>
             <tbody>
               {quote.projection.years.map((y) => (
                 <tr key={y.year}>
-                  <td>{y.year}</td>
-                  <td>{gb(y.projectedSizeGb)}</td>
-                  <td>{usd(y.listPrice)}</td>
+                  <td className="num">{y.year}</td>
+                  <td className="num">{gb(y.projectedSizeGb)}</td>
+                  <td className="num">{usdWhole(y.listPrice)}</td>
                 </tr>
               ))}
               <tr>
                 <td colSpan={2}>
                   <strong>Total ({quote.projection.years.length} years)</strong>
                 </td>
-                <td>
-                  <strong>{usd(quote.projection.totalListPrice)}</strong>
+                <td className="num">
+                  <strong>{usdWhole(quote.projection.totalListPrice)}</strong>
                 </td>
               </tr>
             </tbody>
           </table>
-          <p>
+          <p className="note">
             <em>Quotes are not saved — prices reflect current data and Assumptions.</em>
           </p>
           {user?.role === 'admin' && quote.breakdown && (

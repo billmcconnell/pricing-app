@@ -306,8 +306,8 @@ export function Imports() {
                   <tr key={c.companyCode}>
                     <td>{c.companyCode}</td>
                     <td>{c.accountName ?? '—'}</td>
-                    <td>{c.acv === null ? '—' : usd(c.acv)}</td>
-                    <td>
+                    <td className="num">{c.acv === null ? '—' : usd(c.acv)}</td>
+                    <td className="code">
                       <em>no Environment (unpriceable)</em>
                     </td>
                     <td>—</td>
@@ -319,14 +319,14 @@ export function Imports() {
                     <tr key={e.identifier}>
                       <td>{c.companyCode}</td>
                       <td>{c.accountName ?? '—'}</td>
-                      <td>{c.acv === null ? '—' : usd(c.acv)}</td>
-                      <td>
+                      <td className="num">{c.acv === null ? '—' : usd(c.acv)}</td>
+                      <td className="code">
                         {e.identifier}
                         {e.missingFromLastImport && <strong> ⚠ missing from last import</strong>}
                       </td>
-                      <td>{gb(e.dbSizeGb)}</td>
-                      <td>{e.growthRate === null ? <em>none imported</em> : pct(e.growthRate)}</td>
-                      <td>
+                      <td className="num">{gb(e.dbSizeGb)}</td>
+                      <td className="num">{e.growthRate === null ? <em>none imported</em> : pct(e.growthRate)}</td>
+                      <td className="num">
                         {pct(e.effectiveGrowthRate)}
                         {e.growthDefaulted && <em> (defaulted to floor)</em>}
                       </td>

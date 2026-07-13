@@ -1,0 +1,525 @@
+/* Data Lake Pricing — "the rate desk".
+   Sea-ink chrome, sea-glass workspace, marine-teal actions, signal-orange
+   warnings. Every figure in the app speaks IBM Plex Mono with tabular
+   numerals — the ledger voice. */
+
+:root {
+  --ink: #17242f;
+  --ink-2: #22333f;
+  --ink-3: #31434f;
+  --paper: #eef2f1;
+  --card: #ffffff;
+  --line: #d5dedc;
+  --line-strong: #aebfbb;
+  --text: #1c2b31;
+  --muted: #5b6e74;
+  --accent: #0d7a63;
+  --accent-hover: #0a614f;
+  --accent-soft: #e3f0ec;
+  --signal: #b4531b;
+  --signal-soft: #faeee4;
+  --focus: #1f6fd6;
+  --radius: 6px;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --sans: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --shadow: 0 1px 2px rgba(23, 36, 47, 0.06), 0 4px 12px rgba(23, 36, 47, 0.05);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+
+/* ---------- Type ---------- */
+
+h1,
+h2,
+h3 {
+  font-family: var(--sans);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: 1.7rem;
+  font-weight: 700;
+  margin: 0 0 1rem;
+}
+
+h2 {
+  font-size: 1.1rem;
+  font-weight: 650;
+  margin: 2.2rem 0 0.7rem;
+}
+
+h3 {
+  font-size: 0.95rem;
+  font-weight: 650;
+  margin: 1.8rem 0 0.5rem;
+}
+
+.num,
+code {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+em {
+  color: var(--muted);
+}
+
+/* ---------- Topbar ---------- */
+
+.topbar {
+  background: var(--ink);
+  color: #e8eeec;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  padding: 0 1.5rem;
+  min-height: 56px;
+  flex-wrap: wrap;
+}
+
+.wordmark {
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  line-height: 1.25;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.wordmark small {
+  display: block;
+  font-weight: 500;
+  font-size: 0.62rem;
+  letter-spacing: 0.24em;
+  color: #7fa89d;
+}
+
+.topbar nav {
+  display: flex;
+  gap: 0.25rem;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.topbar nav a {
+  color: #c4d2ce;
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 550;
+  padding: 1rem 0.75rem;
+  border-bottom: 2px solid transparent;
+  transition: color 120ms ease;
+}
+
+.topbar nav a:hover {
+  color: #fff;
+}
+
+.topbar nav a[aria-current='page'] {
+  color: #fff;
+  border-bottom-color: var(--accent);
+}
+
+.session {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.82rem;
+  color: #9fb3ad;
+}
+
+.session button {
+  background: transparent;
+  color: #c4d2ce;
+  border: 1px solid var(--ink-3);
+  box-shadow: none;
+}
+
+.session button:hover {
+  color: #fff;
+  border-color: var(--line-strong);
+  background: var(--ink-2);
+}
+
+/* ---------- Layout ---------- */
+
+main {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+/* ---------- Tables ---------- */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin: 0.75rem 0 1rem;
+  overflow: hidden;
+}
+
+th {
+  text-align: left;
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: #f6f9f8;
+  padding: 0.55rem 0.8rem;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+td {
+  padding: 0.5rem 0.8rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+tbody tr:hover td {
+  background: #f4f8f7;
+}
+
+td.code {
+  font-family: var(--mono);
+  font-size: 0.88rem;
+}
+
+td.num,
+th.num {
+  text-align: right;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+/* Group header rows inside the cost breakdown table */
+tbody th[colspan] {
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 720px) {
+  table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
+/* ---------- Forms & buttons ---------- */
+
+label {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0.35rem 1rem 0.35rem 0;
+}
+
+input,
+select {
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--text);
+  background: var(--card);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 0.45rem 0.6rem;
+  min-width: 12rem;
+}
+
+input[type='number'] {
+  min-width: 6rem;
+  font-family: var(--mono);
+}
+
+input[type='file'] {
+  border: 1px dashed var(--line-strong);
+  background: #f6f9f8;
+  padding: 0.6rem;
+}
+
+input:focus,
+select:focus {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent-soft);
+  outline-offset: 0;
+}
+
+form {
+  margin: 0.5rem 0 1rem;
+}
+
+button {
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--card);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 0.42rem 0.9rem;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+button[type='submit'],
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+button[type='submit']:hover:not(:disabled),
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+form button {
+  align-self: flex-end;
+  margin: 0.35rem 0;
+}
+
+/* ---------- Banners & notes ---------- */
+
+[role='alert'] {
+  background: var(--signal-soft);
+  border: 1px solid #e4b48f;
+  border-left: 4px solid var(--signal);
+  border-radius: var(--radius);
+  color: #6e3510;
+  padding: 0.65rem 0.9rem;
+  margin: 0.75rem 0;
+}
+
+[role='status'] {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.note {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* ---------- Quote screen ---------- */
+
+.customer-search input[type='search'] {
+  width: min(28rem, calc(100vw - 3rem));
+  font-size: 1.05rem;
+  padding: 0.6rem 0.8rem;
+}
+
+.search-results {
+  list-style: none;
+  margin: 0.5rem 0;
+  padding: 0;
+  max-width: 34rem;
+}
+
+.search-results li + li {
+  margin-top: 0.35rem;
+}
+
+.search-results button,
+.env-picker button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.55rem 0.8rem;
+  font-weight: 500;
+}
+
+.search-results .code {
+  font-family: var(--mono);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.env-picker {
+  list-style: none;
+  margin: 0.5rem 0 1rem;
+  padding: 0;
+  max-width: 34rem;
+}
+
+.env-picker li + li {
+  margin-top: 0.35rem;
+}
+
+.rate-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.25rem 1.5rem 1.5rem;
+  margin-top: 1.25rem;
+}
+
+.rate-card h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+}
+
+.rate-card h2 .identifier {
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.price-hero {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--line);
+  padding: 0.75rem 0 1rem;
+  margin: 0 0 0.75rem;
+}
+
+.price-hero .price-label {
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  flex-basis: 100%;
+}
+
+.price-hero strong {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 2.6rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.price-hero .price-unit {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.quote-inputs {
+  list-style: none;
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin: 0 0 0.5rem;
+  padding: 0;
+}
+
+.quote-inputs li {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.quote-inputs .num {
+  display: block;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+/* ---------- Login ---------- */
+
+.login-screen {
+  min-height: 100vh;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: var(--ink);
+}
+
+.login-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+  padding: 2.2rem 2.4rem;
+  width: min(24rem, calc(100vw - 2rem));
+}
+
+.login-card .wordmark {
+  color: var(--ink);
+  margin-bottom: 1.4rem;
+}
+
+.login-card .wordmark small {
+  color: var(--accent);
+}
+
+.login-card form {
+  display: flex;
+  flex-direction: column;
+}
+
+.login-card label {
+  margin-right: 0;
+}
+
+.login-card input {
+  min-width: 0;
+}
+
+.login-card button[type='submit'] {
+  align-self: stretch;
+  margin-top: 0.9rem;
+  padding: 0.6rem;
+}

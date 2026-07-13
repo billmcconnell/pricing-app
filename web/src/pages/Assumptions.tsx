@@ -157,7 +157,7 @@ export function Assumptions() {
               <tr key={c.id}>
                 <td>{new Date(c.changedAt).toLocaleString()}</td>
                 <td>{c.label}</td>
-                <td>
+                <td className="num">
                   {c.oldValue} → {c.newValue}
                 </td>
                 <td>{c.changedBy}</td>

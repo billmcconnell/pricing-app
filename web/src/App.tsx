@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Link, Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { Navigate, NavLink, Outlet, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth.js';
 import { AdminUsers } from './pages/AdminUsers.js';
 import { Assumptions } from './pages/Assumptions.js';
@@ -25,16 +25,21 @@ function Layout() {
   const { user, logout } = useAuth();
   return (
     <>
-      <nav>
-        <Link to="/">Quotes</Link>
-        {user?.role === 'admin' && <Link to="/admin/imports">Imports</Link>}
-        {user?.role === 'admin' && <Link to="/admin/cost-model">Cost Model</Link>}
-        {user?.role === 'admin' && <Link to="/admin/assumptions">Assumptions</Link>}
-        {user?.role === 'admin' && <Link to="/admin/users">Users</Link>}
-        <span>
+      <header className="topbar">
+        <div className="wordmark">
+          Data Lake<small>Pricing</small>
+        </div>
+        <nav>
+          <NavLink to="/">Quotes</NavLink>
+          {user?.role === 'admin' && <NavLink to="/admin/imports">Imports</NavLink>}
+          {user?.role === 'admin' && <NavLink to="/admin/cost-model">Cost Model</NavLink>}
+          {user?.role === 'admin' && <NavLink to="/admin/assumptions">Assumptions</NavLink>}
+          {user?.role === 'admin' && <NavLink to="/admin/users">Users</NavLink>}
+        </nav>
+        <span className="session">
           {user?.email} <button onClick={() => void logout()}>Sign out</button>
         </span>
-      </nav>
+      </header>
       <main>
         <Outlet />
       </main>
