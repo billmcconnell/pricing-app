@@ -254,6 +254,29 @@ it('quietly notes when ACV is unknown, and stays silent when the guardrail passe
   expect(screen.queryByText(/Proportionality Guardrail:/)).toBeNull();
 });
 
+it('Copy summary puts the plain-text quote on the clipboard with visible confirmation', async () => {
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } });
+  stubFetch(salesUser, {
+    '/api/quote/customers': quoteCustomers,
+    '/api/quote?environment=RUMB&years=5': rumbQuote,
+  });
+  renderApp();
+  fireEvent.change(await screen.findByRole('searchbox'), { target: { value: 'RUMB' } });
+  fireEvent.click(await screen.findByRole('button', { name: /RUMB — Radiant-Macaw/ }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Copy summary' }));
+
+  expect(await screen.findByRole('status')).toBeDefined();
+  expect(screen.getByText(/Copied to clipboard/)).toBeDefined();
+  expect(writeText).toHaveBeenCalledOnce();
+  const text = writeText.mock.calls[0][0] as string;
+  expect(text).toContain('DATA LAKE QUOTE');
+  expect(text).toContain('RUMB — Radiant-Macaw');
+  expect(text).toContain('Year-1 List Price: USD 40,000 per year');
+  expect(text).toContain('Total (5 years): USD 240,500');
+  expect(text).not.toMatch(/OPEX|margin|contingency/i);
+});
+
 it('shows the Multi-Year Projection with per-year prices and the total', async () => {
   stubFetch(salesUser, {
     '/api/quote/customers': quoteCustomers,

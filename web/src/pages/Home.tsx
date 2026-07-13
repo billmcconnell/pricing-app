@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../auth.js';
 import {
   CostBreakdownTable,
   usd,
   type CostBreakdown,
 } from '../components/CostBreakdownTable.js';
+import { buildQuoteSummary } from '../quoteSummary.js';
 
 type QuoteEnvironment = {
   identifier: string;
@@ -63,6 +64,15 @@ export function Home() {
   const [environment, setEnvironment] = useState<string | null>(null);
   const [years, setYears] = useState(5);
   const [quote, setQuote] = useState<Quote | null>(null);
+  const [copied, setCopied] = useState(false);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  async function copySummary(q: Quote) {
+    await navigator.clipboard.writeText(buildQuoteSummary(q));
+    setCopied(true);
+    if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    copiedTimer.current = setTimeout(() => setCopied(false), 2500);
+  }
 
   useEffect(() => {
     fetch('/api/quote/customers')
@@ -186,7 +196,9 @@ export function Home() {
             {quote.accountName ? ` — ${quote.accountName}` : ''} · {quote.identifier}
           </h2>
           <p>
-            Year-1 List Price: <strong>{usd(quote.listPrice)}</strong> / year
+            Year-1 List Price: <strong>{usd(quote.listPrice)}</strong> / year{' '}
+            <button onClick={() => void copySummary(quote)}>Copy summary</button>
+            {copied && <span role="status"> Copied to clipboard.</span>}
           </p>
           <ul>
             <li>IMOS DB Size: {gb(quote.dbSizeGb)}</li>
