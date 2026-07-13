@@ -158,6 +158,68 @@ export function parseGrowthRate(table: Cell[][]): GrowthRateParse {
   return { rows, errors, warnings };
 }
 
+export type AcvRow = {
+  line: number;
+  companyCode: string;
+  accountName: string | null;
+  /** Annual contract value in USD. Negative values occur in real Salesforce data. */
+  acv: number;
+};
+export type AcvParse = { rows: AcvRow[]; errors: RowIssue[]; warnings: string[] };
+
+/**
+ * ACV feed (Salesforce export): Company Code, Account Name, ACV. The ACV column is
+ * picked by header when present (e.g. 'Sum of ACV'); otherwise the third column.
+ */
+export function parseAcv(table: Cell[][]): AcvParse {
+  const rows: AcvRow[] = [];
+  const errors: RowIssue[] = [];
+  const warnings: string[] = [];
+  const seen = new Set<string>();
+
+  let acvColumn = 2;
+  let body = table;
+  const header = table[0];
+  if (header && header.every((c) => asNumber(c) === null)) {
+    const names = header.map((c) => (typeof c === 'string' ? c.trim().toLowerCase() : ''));
+    const found = names.findIndex((n) => /acv/.test(n));
+    if (found >= 0) acvColumn = found;
+    body = table.slice(1);
+  }
+
+  body.forEach((cells, index) => {
+    const line = index + (body === table ? 1 : 2);
+    const code = typeof cells[0] === 'string' ? cells[0].trim() : String(cells[0] ?? '');
+    if (!COMPANY_CODE.test(code)) {
+      errors.push({
+        line,
+        identifier: code || null,
+        message: `bad identifier: '${code}' is not a 4-letter Company Code`,
+      });
+      return;
+    }
+    const acv = asNumber(cells[acvColumn] ?? null);
+    if (acv === null) {
+      errors.push({ line, identifier: code, message: `non-numeric ACV: '${cells[acvColumn]}'` });
+      return;
+    }
+    const companyCode = code.toUpperCase();
+    if (seen.has(companyCode)) {
+      warnings.push(`line ${line}: duplicate Company Code '${companyCode}' ignored (first occurrence wins)`);
+      return;
+    }
+    seen.add(companyCode);
+    const nameCell = cells[1];
+    const accountName =
+      acvColumn !== 1 && typeof nameCell === 'string' && nameCell.trim() !== ''
+        ? nameCell.trim()
+        : null;
+    rows.push({ line, companyCode, accountName, acv });
+  });
+
+  return { rows, errors, warnings };
+}
+
 export type AccountNameRow = { line: number; companyCode: string; accountName: string };
 export type AccountNamesParse = { rows: AccountNameRow[]; errors: RowIssue[]; warnings: string[] };
 

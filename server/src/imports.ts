@@ -1,6 +1,6 @@
 import { eq, inArray } from 'drizzle-orm';
 import type { Db } from './db.js';
-import type { AccountNameRow, GrowthRateRow, SpaceusedRow } from './feeds.js';
+import type { AccountNameRow, AcvRow, GrowthRateRow, SpaceusedRow } from './feeds.js';
 import { customers, environments, imports } from './schema.js';
 
 const MB_PER_GB = 1000;
@@ -128,6 +128,55 @@ export function commitGrowthRate(db: Db, rows: GrowthRateRow[], filename: string
     tx.insert(imports)
       .values({ feed: 'growth-rate', rowCount: rows.length - unknown.size, filename })
       .run();
+    return diff;
+  });
+}
+
+export type AcvDiff = {
+  acvSet: { companyCode: string; oldAcv: number | null; newAcv: number }[];
+  customersCreated: string[];
+  unchangedCount: number;
+};
+
+export function diffAcv(db: Db, rows: AcvRow[]): AcvDiff {
+  const existing = db.select().from(customers).all();
+  const byCode = new Map(existing.map((c) => [c.companyCode, c]));
+  const diff: AcvDiff = { acvSet: [], customersCreated: [], unchangedCount: 0 };
+  for (const row of rows) {
+    const current = byCode.get(row.companyCode);
+    if (!current) {
+      // Customers with no Environment exist commercially — created, not rejected.
+      diff.customersCreated.push(row.companyCode);
+      diff.acvSet.push({ companyCode: row.companyCode, oldAcv: null, newAcv: row.acv });
+    } else if (current.acv !== row.acv) {
+      diff.acvSet.push({ companyCode: row.companyCode, oldAcv: current.acv, newAcv: row.acv });
+    } else {
+      diff.unchangedCount++;
+    }
+  }
+  return diff;
+}
+
+export function commitAcv(db: Db, rows: AcvRow[], filename: string | null): AcvDiff {
+  return db.transaction((tx) => {
+    const diff = diffAcv(tx as unknown as Db, rows);
+    for (const row of rows) {
+      const existing = tx
+        .select()
+        .from(customers)
+        .where(eq(customers.companyCode, row.companyCode))
+        .get();
+      if (existing) {
+        if (existing.acv !== row.acv) {
+          tx.update(customers).set({ acv: row.acv }).where(eq(customers.id, existing.id)).run();
+        }
+      } else {
+        tx.insert(customers)
+          .values({ companyCode: row.companyCode, accountName: row.accountName, acv: row.acv })
+          .run();
+      }
+    }
+    tx.insert(imports).values({ feed: 'acv', rowCount: rows.length, filename }).run();
     return diff;
   });
 }

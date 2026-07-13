@@ -23,6 +23,12 @@ type GrowthRateDiff = {
   unknownIdentifiers: string[];
 };
 
+type AcvDiff = {
+  acvSet: { companyCode: string; oldAcv: number | null; newAcv: number }[];
+  customersCreated: string[];
+  unchangedCount: number;
+};
+
 type AccountNamesDiff = {
   namesSet: { companyCode: string; oldAccountName: string | null; accountName: string }[];
   customersCreated: string[];
@@ -43,11 +49,13 @@ type CustomerList = {
     spaceused: { importedAt: string; rowCount: number } | null;
     accountNames: { importedAt: string; rowCount: number } | null;
     growthRate: { importedAt: string; rowCount: number } | null;
+    acv: { importedAt: string; rowCount: number } | null;
   };
   growthFloor: number;
   customers: {
     companyCode: string;
     accountName: string | null;
+    acv: number | null;
     environments: {
       identifier: string;
       dbSizeGb: number;
@@ -67,6 +75,10 @@ function gb(n: number) {
 
 function pct(ratio: number) {
   return `${(ratio * 100).toLocaleString('en-US', { maximumFractionDigits: 2 })}%`;
+}
+
+function usd(n: number) {
+  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 }
 
 function FeedStatus({ label, imported }: { label: string; imported: { importedAt: string; rowCount: number } | null }) {
@@ -240,6 +252,19 @@ export function Imports() {
         )}
       />
 
+      <UploadCard<AcvDiff>
+        title="ACV (Salesforce export)"
+        feed="acv"
+        onCommitted={refresh}
+        renderDiff={(diff) => (
+          <ul>
+            <li>{diff.acvSet.length} Customers will get a new or changed ACV</li>
+            <li>{diff.customersCreated.length} Customers will be created (no Environment yet)</li>
+            <li>{diff.unchangedCount} unchanged</li>
+          </ul>
+        )}
+      />
+
       <UploadCard<AccountNamesDiff>
         title="Account names (Company Code cheat sheet)"
         feed="account-names"
@@ -260,6 +285,7 @@ export function Imports() {
         <>
           <FeedStatus label="DB sizes" imported={list.imports.spaceused} />
           <FeedStatus label="Growth Rates" imported={list.imports.growthRate} />
+          <FeedStatus label="ACV" imported={list.imports.acv} />
           <FeedStatus label="Account names" imported={list.imports.accountNames} />
           <p>Growth floor: {pct(list.growthFloor)} (applied at read time)</p>
           <table>
@@ -267,6 +293,7 @@ export function Imports() {
               <tr>
                 <th>Company Code</th>
                 <th>Account Name</th>
+                <th>ACV</th>
                 <th>Environment</th>
                 <th>IMOS DB Size</th>
                 <th>Growth Rate</th>
@@ -279,6 +306,7 @@ export function Imports() {
                   <tr key={c.companyCode}>
                     <td>{c.companyCode}</td>
                     <td>{c.accountName ?? '—'}</td>
+                    <td>{c.acv === null ? '—' : usd(c.acv)}</td>
                     <td>
                       <em>no Environment (unpriceable)</em>
                     </td>
@@ -291,6 +319,7 @@ export function Imports() {
                     <tr key={e.identifier}>
                       <td>{c.companyCode}</td>
                       <td>{c.accountName ?? '—'}</td>
+                      <td>{c.acv === null ? '—' : usd(c.acv)}</td>
                       <td>
                         {e.identifier}
                         {e.missingFromLastImport && <strong> ⚠ missing from last import</strong>}

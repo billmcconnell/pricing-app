@@ -70,12 +70,14 @@ it('the Imports page lists Environments with staleness and missing flags', async
         spaceused: { importedAt: staleDate, rowCount: 366 },
         accountNames: null,
         growthRate: null,
+        acv: null,
       },
       growthFloor: 0.3,
       customers: [
         {
           companyCode: 'MOLH',
           accountName: 'Mighty-Ocelot',
+          acv: 250000,
           environments: [
             {
               identifier: 'MOLH_imos_MPCC_PROD',
@@ -95,7 +97,7 @@ it('the Imports page lists Environments with staleness and missing flags', async
             },
           ],
         },
-        { companyCode: 'ZZZZ', accountName: null, environments: [] },
+        { companyCode: 'ZZZZ', accountName: null, acv: null, environments: [] },
       ],
     },
   });
@@ -156,6 +158,7 @@ const rumbQuote = {
     ],
     totalListPrice: 240500,
   },
+  guardrail: { acv: 500000, threshold: 0.25, thresholdAmount: 125000, triggered: false },
   quotedAt: '2026-07-13T00:00:00.000Z',
 };
 
@@ -172,6 +175,36 @@ it('Sales finds a Customer by Account Name and gets a List Price without cost in
   expect(screen.queryByText(/OPEX/)).toBeNull();
   expect(screen.queryByText(/margin/i)).toBeNull();
   expect(screen.queryByText(/contingency/i)).toBeNull();
+});
+
+it('shows the Proportionality Guardrail warning only when triggered', async () => {
+  stubFetch(salesUser, {
+    '/api/quote/customers': quoteCustomers,
+    '/api/quote?environment=RUMB&years=5': {
+      ...rumbQuote,
+      guardrail: { acv: 100000, threshold: 0.25, thresholdAmount: 25000, triggered: true },
+    },
+  });
+  renderApp();
+  fireEvent.change(await screen.findByRole('searchbox'), { target: { value: 'RUMB' } });
+  fireEvent.click(await screen.findByRole('button', { name: /RUMB — Radiant-Macaw/ }));
+  expect(await screen.findByText(/Proportionality Guardrail/)).toBeDefined();
+  expect(screen.getByText(/flag for judgment, not a block/)).toBeDefined();
+});
+
+it('quietly notes when ACV is unknown, and stays silent when the guardrail passes', async () => {
+  stubFetch(salesUser, {
+    '/api/quote/customers': quoteCustomers,
+    '/api/quote?environment=RUMB&years=5': {
+      ...rumbQuote,
+      guardrail: { acv: null, threshold: 0.25, thresholdAmount: null, triggered: null },
+    },
+  });
+  renderApp();
+  fireEvent.change(await screen.findByRole('searchbox'), { target: { value: 'RUMB' } });
+  fireEvent.click(await screen.findByRole('button', { name: /RUMB — Radiant-Macaw/ }));
+  expect(await screen.findByText(/ACV unknown for this Customer/)).toBeDefined();
+  expect(screen.queryByText(/Proportionality Guardrail:/)).toBeNull();
 });
 
 it('shows the Multi-Year Projection with per-year prices and the total', async () => {

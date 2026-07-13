@@ -41,6 +41,8 @@ export const customers = sqliteTable('customers', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   companyCode: text('company_code').notNull().unique(),
   accountName: text('account_name'),
+  /** Annual contract value from Salesforce. Consumed only by the Proportionality Guardrail — never a pricing input (ADR-0002). */
+  acv: real('acv'),
 });
 
 export const environments = sqliteTable('environments', {
@@ -61,7 +63,7 @@ export const environments = sqliteTable('environments', {
 
 export const imports = sqliteTable('imports', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  feed: text('feed', { enum: ['spaceused', 'account-names', 'growth-rate'] }).notNull(),
+  feed: text('feed', { enum: ['spaceused', 'account-names', 'growth-rate', 'acv'] }).notNull(),
   importedAt: integer('imported_at', { mode: 'timestamp' })
     .notNull()
     .$defaultFn(() => new Date()),

@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm';
 import type { Db } from './db.js';
 import type { CostModelAssumptions } from './costModel.js';
 import { assumptions } from './schema.js';
@@ -32,6 +33,7 @@ export const ASSUMPTION_SEEDS: Seed[] = [
   { key: 'growth_floor', value: 0.3, label: 'Growth Rate floor applied to every Environment', category: 'behavioral', unit: 'ratio' },
   // Commercial policy
   { key: 'gross_margin', value: 0.6, label: 'Gross margin: List Price = OPEX ÷ (1 − margin) (ADR-0001)', category: 'commercial', unit: 'ratio' },
+  { key: 'guardrail_acv_share', value: 0.25, label: 'Proportionality Guardrail: warn when List Price exceeds this share of the Customer’s ACV (flags, never blocks)', category: 'commercial', unit: 'ratio' },
   { key: 'price_floor', value: 30000, label: 'Minimum List Price', category: 'commercial', unit: '$/year' },
   { key: 'price_rounding', value: 500, label: 'List Price rounded up to the nearest', category: 'commercial', unit: '$' },
   { key: 'credit_tier_base_credits', value: 200, label: 'Snowflake credit allocation, base tier', category: 'commercial', unit: 'credits/month' },
@@ -42,6 +44,13 @@ export const ASSUMPTION_SEEDS: Seed[] = [
   { key: 'credit_tier_4_over_gb', value: 200, label: 'Credit tier 4 applies above this grown size', category: 'commercial', unit: 'GB' },
   { key: 'credit_tier_4_credits', value: 500, label: 'Snowflake credit allocation, tier 4', category: 'commercial', unit: 'credits/month' },
 ];
+
+/** Read a single Assumption value not consumed by the cost model (e.g. the guardrail share). */
+export function assumptionValue(db: Db, key: string): number {
+  const row = db.select().from(assumptions).where(eq(assumptions.key, key)).get();
+  if (!row) throw new Error(`Assumption missing from database: ${key}`);
+  return row.value;
+}
 
 export function loadCostModelAssumptions(db: Db): CostModelAssumptions {
   const rows = db.select().from(assumptions).all();

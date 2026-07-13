@@ -2,7 +2,7 @@ import cookie from '@fastify/cookie';
 import multipart from '@fastify/multipart';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import { desc, eq } from 'drizzle-orm';
-import { loadCostModelAssumptions } from './assumptions.js';
+import { assumptionValue, loadCostModelAssumptions } from './assumptions.js';
 import {
   createSession,
   destroySession,
@@ -14,12 +14,14 @@ import {
 import { computeCost, projectMultiYear } from './costModel.js';
 import type { Db } from './db.js';
 import { tableFromUpload } from './feedFiles.js';
-import { parseAccountNames, parseGrowthRate, parseSpaceused } from './feeds.js';
+import { parseAccountNames, parseAcv, parseGrowthRate, parseSpaceused } from './feeds.js';
 import {
   commitAccountNames,
+  commitAcv,
   commitGrowthRate,
   commitSpaceused,
   diffAccountNames,
+  diffAcv,
   diffGrowthRate,
   diffSpaceused,
 } from './imports.js';
@@ -143,6 +145,16 @@ export function buildApp(db: Db) {
     const modelInputs = { dbSizeGb: env.dbSizeGb, growthRate: env.growthRate ?? a.growthFloor };
     const breakdown = computeCost(modelInputs, a);
     const projection = projectMultiYear(modelInputs, years, a);
+    // Proportionality Guardrail: ACV never influences the price (ADR-0002) —
+    // it only decides whether to show the warning. Flags, never blocks.
+    const guardrailShare = assumptionValue(db, 'guardrail_acv_share');
+    const guardrail = {
+      acv: customer.acv,
+      threshold: guardrailShare,
+      thresholdAmount: customer.acv === null ? null : guardrailShare * customer.acv,
+      triggered:
+        customer.acv === null ? null : breakdown.listPrice > guardrailShare * customer.acv,
+    };
     const quote = {
       identifier: env.identifier,
       companyCode: customer.companyCode,
@@ -162,6 +174,7 @@ export function buildApp(db: Db) {
         })),
         totalListPrice: projection.totalListPrice,
       },
+      guardrail,
       quotedAt: new Date().toISOString(),
     };
     // The role boundary is enforced in the payload, not just the UI:
@@ -245,6 +258,26 @@ export function buildApp(db: Db) {
     );
 
     app.post(
+      `/api/imports/acv/${mode}`,
+      { preHandler: requireAdmin },
+      async (req, reply) => {
+        let upload;
+        try {
+          upload = await readUpload(req);
+        } catch (err) {
+          return reply.code(400).send({ error: (err as Error).message });
+        }
+        if (!upload) return reply.code(400).send({ error: 'no file uploaded' });
+        const { rows, errors, warnings } = parseAcv(upload.table);
+        if (errors.length > 0) {
+          return reply.code(422).send({ errors, warnings, committed: false });
+        }
+        const diff = mode === 'commit' ? commitAcv(db, rows, upload.filename) : diffAcv(db, rows);
+        return { errors, warnings, rowCount: rows.length, diff, committed: mode === 'commit' };
+      },
+    );
+
+    app.post(
       `/api/imports/account-names/${mode}`,
       { preHandler: requireAdmin },
       async (req, reply) => {
@@ -280,7 +313,7 @@ export function buildApp(db: Db) {
       list.push(env);
       byCustomer.set(env.customerId, list);
     }
-    const lastImport = (feed: 'spaceused' | 'account-names' | 'growth-rate') =>
+    const lastImport = (feed: 'spaceused' | 'account-names' | 'growth-rate' | 'acv') =>
       db
         .select()
         .from(imports)
@@ -293,6 +326,7 @@ export function buildApp(db: Db) {
         spaceused: lastImport('spaceused'),
         accountNames: lastImport('account-names'),
         growthRate: lastImport('growth-rate'),
+        acv: lastImport('acv'),
       },
       growthFloor,
       customers: customerRows
@@ -300,6 +334,7 @@ export function buildApp(db: Db) {
         .map((c) => ({
           companyCode: c.companyCode,
           accountName: c.accountName,
+          acv: c.acv,
           environments: (byCustomer.get(c.id) ?? []).map((e) => ({
             identifier: e.identifier,
             dbSizeGb: e.dbSizeGb,

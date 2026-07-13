@@ -34,6 +34,12 @@ type Quote = {
     years: { year: number; projectedSizeGb: number; listPrice: number }[];
     totalListPrice: number;
   };
+  guardrail: {
+    acv: number | null;
+    threshold: number;
+    thresholdAmount: number | null;
+    triggered: boolean | null;
+  };
   quotedAt: string;
   breakdown?: CostBreakdown;
 };
@@ -195,6 +201,19 @@ export function Home() {
             </li>
             <li>Grown size: {gb(quote.grownSizeGb)}</li>
           </ul>
+          {quote.guardrail.triggered === true && (
+            <p role="alert">
+              <strong>Proportionality Guardrail:</strong> this List Price exceeds{' '}
+              {pct(quote.guardrail.threshold)} of the Customer&apos;s ACV ({usd(quote.guardrail.acv!)}
+              ). This is a flag for judgment, not a block.
+            </p>
+          )}
+          {quote.guardrail.triggered === null && (
+            <p>
+              <em>ACV unknown for this Customer — Proportionality Guardrail not evaluated.</em>
+            </p>
+          )}
+
           <h3>Multi-Year Projection</h3>
           <label>
             Years
