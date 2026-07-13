@@ -1,0 +1,31 @@
+# Fly.io config — see docs/deploy.md for the full runbook.
+# `fly launch` may offer to overwrite this file; keep these settings.
+app = "pricing-app" # rename if taken: fly apps create <name>, then update here
+primary_region = "iad" # pick the region closest to the team
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  BACKUP_RCLONE_REMOTE = "gdrive:pricing-app-backups"
+  BACKUP_HOUR_UTC = "3"
+  BACKUP_DIR = "/tmp"
+
+[mounts]
+  source = "data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+  # The in-process backup scheduler needs the machine running around the clock.
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[http_service.checks]]
+  interval = "30s"
+  timeout = "5s"
+  grace_period = "10s"
+  method = "GET"
+  path = "/api/health"

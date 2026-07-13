@@ -7,11 +7,14 @@
     "build": "tsc",
     "test": "vitest run",
     "report:parity": "tsx src/scripts/parityReport.ts",
+    "backup": "tsx src/scripts/backup.ts",
+    "restore": "tsx src/scripts/restore.ts",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.1",
     "@fastify/multipart": "^10.1.0",
+    "@fastify/static": "^10.1.0",
     "better-sqlite3": "^12.4.1",
     "drizzle-orm": "^0.44.2",
     "exceljs": "^4.4.0",

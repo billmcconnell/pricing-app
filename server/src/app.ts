@@ -1,5 +1,6 @@
 import cookie from '@fastify/cookie';
 import multipart from '@fastify/multipart';
+import fastifyStatic from '@fastify/static';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import { desc, eq } from 'drizzle-orm';
 import {
@@ -54,14 +55,18 @@ function toPublicUser(user: User) {
   return { id: user.id, email: user.email, role: user.role, disabled: user.disabled };
 }
 
-export function buildApp(db: Db) {
-  const app = Fastify({ logger: process.env.NODE_ENV !== 'test' });
+export function buildApp(db: Db, options: { webDist?: string } = {}) {
+  // trustProxy: in production Fly's edge terminates TLS and proxies to us.
+  const app = Fastify({ logger: process.env.NODE_ENV !== 'test', trustProxy: true });
 
   app.register(cookie);
   app.register(multipart, { limits: { fileSize: 20 * 1024 * 1024, files: 1 } });
   app.decorateRequest('user', null);
 
   app.addHook('onRequest', async (req: FastifyRequest, reply: FastifyReply) => {
+    // Only the API is guarded; static files are just the SPA shell — all data
+    // behind them still requires a session.
+    if (!req.url.startsWith('/api/')) return;
     if (req.routeOptions.url && PUBLIC_ROUTES.has(req.routeOptions.url)) return;
     const token = req.cookies[SESSION_COOKIE];
     const user = token ? userForSession(db, token) : null;
@@ -70,6 +75,17 @@ export function buildApp(db: Db) {
     }
     req.user = user;
   });
+
+  if (options.webDist) {
+    app.register(fastifyStatic, { root: options.webDist });
+    // SPA fallback: client-side routes resolve to index.html; unknown API paths stay 404.
+    app.setNotFoundHandler((req, reply) => {
+      if (req.method === 'GET' && !req.url.startsWith('/api/')) {
+        return reply.sendFile('index.html');
+      }
+      return reply.code(404).send({ error: 'not found' });
+    });
+  }
 
   const requireAdmin = async (req: FastifyRequest, reply: FastifyReply) => {
     if (req.user?.role !== 'admin') {
@@ -101,6 +117,7 @@ export function buildApp(db: Db) {
         path: '/',
         httpOnly: true,
         sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
       });
       return toPublicUser(user);
     },
