@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { buildQuoteSummary, type QuoteSummaryInput } from './quoteSummary.js';
 
 const quote: QuoteSummaryInput = {
-  identifier: 'MOLH_imos_MPCC_PROD',
-  companyCode: 'MOLH',
-  accountName: 'Mighty-Ocelot',
+  identifier: 'ABCD_SaaS_PROD',
+  companyCode: 'ABCD',
+  accountName: 'Artful-Badger',
   dbSizeGb: 171.96,
   effectiveGrowthRate: 0.3,
   growthDefaulted: false,
@@ -24,8 +24,8 @@ describe('buildQuoteSummary', () => {
   const summary = buildQuoteSummary(quote);
 
   it('includes customer, environment, year-1 price, every projection year, total, and date', () => {
-    expect(summary).toContain('MOLH — Mighty-Ocelot');
-    expect(summary).toContain('MOLH_imos_MPCC_PROD');
+    expect(summary).toContain('ABCD — Artful-Badger');
+    expect(summary).toContain('ABCD_SaaS_PROD');
     expect(summary).toContain('171.96 GB');
     expect(summary).toContain('Growth Rate 30%/yr');
     expect(summary).toContain('Year-1 List Price: USD 71,500 per year');
@@ -82,7 +82,7 @@ describe('buildQuoteSummary', () => {
       accountName: null,
       growthDefaulted: true,
     });
-    expect(defaulted).toContain('Customer:     MOLH\n');
+    expect(defaulted).toContain('Customer:     ABCD\n');
     expect(defaulted).toContain('30%/yr (standard rate)');
   });
 });

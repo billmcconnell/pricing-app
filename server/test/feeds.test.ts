@@ -19,7 +19,7 @@ describe('parseCsv', () => {
 describe('parseSpaceused', () => {
   it('skips a header row and reads identifier + size in MB', () => {
     const { rows, errors } = parseSpaceused([
-      ['Company Code', 'IMOS DB size'],
+      ['Company Code', 'SaaS DB size'],
       ['OTQV', 1003483.3],
     ]);
     expect(errors).toEqual([]);
@@ -28,11 +28,11 @@ describe('parseSpaceused', () => {
 
   it('parses full environment names down to their Company Code', () => {
     const { rows } = parseSpaceused([
-      ['MOLH_imos_MPCC_PROD', 100],
-      ['MOLH_imos_MOLDB_prod', 200],
+      ['ABCD_SaaS_PROD', 100],
+      ['ABCD_SaaS_TEST', 200],
     ]);
-    expect(rows.map((r) => r.companyCode)).toEqual(['MOLH', 'MOLH']);
-    expect(rows.map((r) => r.identifier)).toEqual(['MOLH_imos_MPCC_PROD', 'MOLH_imos_MOLDB_prod']);
+    expect(rows.map((r) => r.companyCode)).toEqual(['ABCD', 'ABCD']);
+    expect(rows.map((r) => r.identifier)).toEqual(['ABCD_SaaS_PROD', 'ABCD_SaaS_TEST']);
   });
 
   it('uppercases bare company codes', () => {

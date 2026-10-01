@@ -31,7 +31,7 @@ export function CostModel() {
       <h1>Cost Model</h1>
       <form onSubmit={onSubmit}>
         <label>
-          IMOS DB Size (GB)
+          SaaS DB Size (GB)
           <input value={dbSizeGb} onChange={(e) => setDbSizeGb(e.target.value)} required />
         </label>
         <label>

@@ -4,7 +4,7 @@ export type RowIssue = { line: number; identifier: string | null; message: strin
 
 export type SpaceusedRow = {
   line: number;
-  /** Raw feed identifier, e.g. 'OTQV' or 'MOLH_imos_MPCC_PROD'. */
+  /** Raw feed identifier, e.g. 'OTQV' or 'ABCD_SaaS_PROD'. */
   identifier: string;
   companyCode: string;
   sizeMb: number;
@@ -33,7 +33,7 @@ function isHeaderRow(cells: Cell[]): boolean {
 
 /**
  * spaceused feed: identifier + database size in MB. MB→GB conversion happens at
- * this boundary and nowhere else (CONTEXT.md, IMOS DB Size) — callers get GB.
+ * this boundary and nowhere else (CONTEXT.md, SaaS DB Size) — callers get GB.
  */
 export function parseSpaceused(table: Cell[][]): SpaceusedParse {
   const rows: SpaceusedRow[] = [];

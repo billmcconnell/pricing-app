@@ -295,7 +295,7 @@ export function Imports() {
                 <th>Account Name</th>
                 <th>ACV</th>
                 <th>Environment</th>
-                <th>IMOS DB Size</th>
+                <th>SaaS DB Size</th>
                 <th>Growth Rate</th>
                 <th>Effective Growth</th>
               </tr>

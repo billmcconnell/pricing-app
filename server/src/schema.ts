@@ -64,7 +64,7 @@ export const environments = sqliteTable('environments', {
   customerId: integer('customer_id')
     .notNull()
     .references(() => customers.id, { onDelete: 'cascade' }),
-  /** Raw feed identifier: a bare Company Code (1:1 case) or a full name like MOLH_imos_MPCC_PROD. */
+  /** Raw feed identifier: a bare Company Code (1:1 case) or a full name like ABCD_SaaS_PROD. */
   identifier: text('identifier').notNull().unique(),
   dbSizeGb: real('db_size_gb').notNull(),
   /** Raw Growth Rate ratio (0.2 = 20%/yr); null = never imported. The floor is applied at read time. */

@@ -217,7 +217,7 @@ export function Home() {
           </p>
           <ul className="quote-inputs">
             <li>
-              IMOS DB Size <span className="num">{gb(quote.dbSizeGb)}</span>
+              SaaS DB Size <span className="num">{gb(quote.dbSizeGb)}</span>
             </li>
             <li>
               Growth Rate{' '}

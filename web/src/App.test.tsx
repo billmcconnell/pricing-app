@@ -122,12 +122,12 @@ it('the Imports page lists Environments with staleness and missing flags', async
       growthFloor: 0.3,
       customers: [
         {
-          companyCode: 'MOLH',
-          accountName: 'Mighty-Ocelot',
+          companyCode: 'ABCD',
+          accountName: 'Artful-Badger',
           acv: 250000,
           environments: [
             {
-              identifier: 'MOLH_imos_MPCC_PROD',
+              identifier: 'ABCD_SaaS_PROD',
               dbSizeGb: 100.5,
               missingFromLastImport: false,
               growthRate: 0.45,
@@ -135,7 +135,7 @@ it('the Imports page lists Environments with staleness and missing flags', async
               growthDefaulted: false,
             },
             {
-              identifier: 'MOLH_imos_MOLDB_prod',
+              identifier: 'ABCD_SaaS_TEST',
               dbSizeGb: 50.25,
               missingFromLastImport: true,
               growthRate: null,
@@ -149,7 +149,7 @@ it('the Imports page lists Environments with staleness and missing flags', async
     },
   });
   renderApp('/admin/imports');
-  expect(await screen.findByText('MOLH_imos_MPCC_PROD')).toBeDefined();
+  expect(await screen.findByText('ABCD_SaaS_TEST')).toBeDefined();
   expect(screen.getByText(/stale: over 30 days old/)).toBeDefined();
   expect(screen.getByText(/missing from last import/)).toBeDefined();
   expect(screen.getByText(/no Environment \(unpriceable\)/)).toBeDefined();
@@ -175,11 +175,11 @@ const quoteCustomers = [
     ],
   },
   {
-    companyCode: 'MOLH',
-    accountName: 'Mighty-Ocelot',
+    companyCode: 'ABCD',
+    accountName: 'Artful-Badger',
     environments: [
-      { identifier: 'MOLH_imos_MPCC_PROD', dbSizeGb: 171.96, growthRate: 0.3, effectiveGrowthRate: 0.3, growthDefaulted: false },
-      { identifier: 'MOLH_imos_MOLDB_prod', dbSizeGb: 160.27, growthRate: 0.3, effectiveGrowthRate: 0.3, growthDefaulted: false },
+      { identifier: 'ABCD_SaaS_PROD', dbSizeGb: 171.96, growthRate: 0.3, effectiveGrowthRate: 0.3, growthDefaulted: false },
+      { identifier: 'ABCD_SaaS_TEST', dbSizeGb: 160.27, growthRate: 0.3, effectiveGrowthRate: 0.3, growthDefaulted: false },
     ],
   },
   { companyCode: 'ZZZZ', accountName: 'Zeta-Zebra', environments: [] },
@@ -308,19 +308,19 @@ it('shows the Multi-Year Projection with per-year prices and the total', async (
 it('a Customer with several Environments requires choosing one', async () => {
   stubFetch(salesUser, {
     '/api/quote/customers': quoteCustomers,
-    '/api/quote?environment=MOLH_imos_MPCC_PROD&years=5': {
+    '/api/quote?environment=ABCD_SaaS_PROD&years=5': {
       ...rumbQuote,
-      identifier: 'MOLH_imos_MPCC_PROD',
-      companyCode: 'MOLH',
-      accountName: 'Mighty-Ocelot',
+      identifier: 'ABCD_SaaS_PROD',
+      companyCode: 'ABCD',
+      accountName: 'Artful-Badger',
       listPrice: 33500,
     },
   });
   renderApp();
-  fireEvent.change(await screen.findByRole('searchbox'), { target: { value: 'MOLH' } });
-  fireEvent.click(await screen.findByRole('button', { name: /MOLH — Mighty-Ocelot/ }));
+  fireEvent.change(await screen.findByRole('searchbox'), { target: { value: 'ABCD' } });
+  fireEvent.click(await screen.findByRole('button', { name: /ABCD — Artful-Badger/ }));
   expect(await screen.findByText(/each is priced separately/)).toBeDefined();
-  fireEvent.click(screen.getByRole('button', { name: /MOLH_imos_MPCC_PROD/ }));
+  fireEvent.click(screen.getByRole('button', { name: /ABCD_SaaS_PROD/ }));
   expect(await screen.findByText(/\$33,500/)).toBeDefined();
 });
 

@@ -1,6 +1,6 @@
 // Plain-text quote summary — the artifact Sales pastes into email or Salesforce.
 // Built only from Sales-safe fields: never OPEX, margin, or cost internals,
-// regardless of the viewer's role. Refresh Rate / Alternative Destination lines
+// regardless of the viewer's role. Refresh Rate / Custom Destination lines
 // are added when the add-ons ship (issue 08).
 
 export type QuoteSummaryInput = {
@@ -42,7 +42,7 @@ export function buildQuoteSummary(quote: QuoteSummaryInput): string {
     '',
     `Customer:     ${customer}`,
     `Environment:  ${quote.identifier}`,
-    `IMOS DB Size: ${gb(quote.dbSizeGb)} (Growth Rate ${growth})`,
+    `SaaS DB Size: ${gb(quote.dbSizeGb)} (Growth Rate ${growth})`,
     '',
     `Year-1 List Price: ${usd(quote.listPrice)} per year`,
     '',

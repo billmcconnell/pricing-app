@@ -21,7 +21,7 @@ describe('parseGrowthRate', () => {
 
   it('a full workbook-sheet export reads the raw Growth rate column, not size or the floored column', () => {
     const { rows } = parseGrowthRate([
-      ['Client Env', 'IMOS DB size', 'with uplift', 'Growth rate', 'Growth rate floor'],
+      ['Client Env', 'SaaS DB size', 'with uplift', 'Growth rate', 'Growth rate floor'],
       ['PUAF', 146.13, 3264.54, 21.34, 21.34],
       ['GVTI', 1601.08, 16154.9, 0.09, 0.3],
     ]);
@@ -162,11 +162,11 @@ describe('growth-rate import API', () => {
   });
 
   it('unknown Environments are reported, known rows still commit', async () => {
-    const feed = 'Client Env,Growth rate\nGVTI,1.5\nZZZZ,0.4\nAAAA_imos_X_PROD,0.6\n';
+    const feed = 'Client Env,Growth rate\nGVTI,1.5\nZZZZ,0.4\nAAAA_SaaS_X_PROD,0.6\n';
     const res = await post('/api/imports/growth-rate/commit', 'growth-rate.csv', feed);
     expect(res.statusCode).toBe(200);
     const body = res.json() as { diff: { attached: unknown[]; unknownIdentifiers: string[] } };
-    expect(body.diff.unknownIdentifiers).toEqual(['ZZZZ', 'AAAA_imos_X_PROD']);
+    expect(body.diff.unknownIdentifiers).toEqual(['ZZZZ', 'AAAA_SaaS_X_PROD']);
     expect(body.diff.attached).toHaveLength(1);
     const gvti = db.select().from(environments).where(eq(environments.identifier, 'GVTI')).get()!;
     expect(gvti.growthRate).toBe(1.5);

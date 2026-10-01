@@ -148,9 +148,9 @@ describe('GET /api/quote', () => {
     expect(quote.listPrice).toBe(112000); // known value from the issue-03 workbook fixture
   });
 
-  it('MOLH-style Customers price each Environment separately', async () => {
+  it('ABCD-style Customers price each Environment separately', async () => {
     const quotes = await Promise.all(
-      ['MOLH_imos_MPCC_PROD', 'MOLH_imos_MOLDB_prod'].map(async (identifier) => {
+      ['ABCD_SaaS_PROD', 'ABCD_SaaS_TEST'].map(async (identifier) => {
         const res = await app.inject({
           method: 'GET',
           url: `/api/quote?environment=${encodeURIComponent(identifier)}`,
@@ -166,7 +166,7 @@ describe('GET /api/quote', () => {
       }),
     );
     expect(quotes[0].dbSizeGb).not.toBe(quotes[1].dbSizeGb);
-    expect(quotes.map((q) => q.companyCode)).toEqual(['MOLH', 'MOLH']);
+    expect(quotes.map((q) => q.companyCode)).toEqual(['ABCD', 'ABCD']);
   });
 
   it('an Environment with no imported Growth Rate prices at the floor, marked defaulted', async () => {

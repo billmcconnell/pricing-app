@@ -1,11 +1,11 @@
 # Data Lake Pricing
 
-Prices the Data Lake product (IMOS database replicated via AWS DMS/S3 into Snowflake) for customers. Replaces the "Data Lake Pricing Dashboard" Excel workbook: quoting, the cost model that derives prices, and the per-customer data that feeds it.
+Prices the Data Lake product (SaaS database replicated via AWS DMS/S3 into Snowflake) for customers. Replaces the "Data Lake Pricing Dashboard" Excel workbook: quoting, the cost model that derives prices, and the per-customer data that feeds it.
 
 ## Language
 
 **Environment**:
-An IMOS database being replicated into the Data Lake. The unit of pricing — every cost line (DMS task, Snowpipe, storage) scales with one Environment's database. A Customer with two production databases has two Environments and two priceable line items.
+A Saas database being replicated into the Data Lake. The unit of pricing — every cost line (DMS task, Snowpipe, storage) scales with one Environment's database. A Customer with two production databases has two Environments and two priceable line items.
 _Avoid_: Client env, database (alone), instance
 
 **Customer**:
@@ -13,7 +13,7 @@ An organization that owns one or more Environments, identified by its 4-letter C
 _Avoid_: Client, account (Salesforce sense), company
 
 **Company Code**:
-The 4-letter identifier of a Customer (e.g. `MOLH`). Maps 1:1 to a Salesforce Account Name.
+The 4-letter identifier of a Customer (e.g. `ABCD`). Maps 1:1 to a Salesforce Account Name.
 
 **Sales**:
 Role that uses the quote screen — sees List Price, options, and multi-year totals, but never OPEX, margin, or contingency.
@@ -23,7 +23,7 @@ _Avoid_: Commercial (as a role name)
 Role that owns the cost model — edits assumptions, price floors, and imports data.
 _Avoid_: Pricing owner, analyst
 
-**IMOS DB Size**:
+**Saas DB Size**:
 The measured size of an Environment's database, expressed in GB everywhere in the app. Source data feeds export megabytes; conversion happens once, at import.
 _Avoid_: spaceused, unqualified "size" figures without a unit
 
@@ -69,11 +69,11 @@ Optional add-on to deliver the Data Lake somewhere other than the standard Snowf
 
 ## Flagged ambiguities
 
-- The workbook uses "Company Code", "Client Env", and "Account Name" interchangeably as row keys. They are not the same: Company Code identifies a **Customer**; an **Environment** belongs to a Customer (usually 1:1, not always — `MOLH` has two).
+- The workbook uses "Company Code", "Client Env", and "Account Name" interchangeably as row keys. They are not the same: Company Code identifies a **Customer**; an **Environment** belongs to a Customer (usually 1:1, not always — `ABCD` has two).
 
 ## Example dialogue
 
 > **Dev:** Sales wants a quote for MOLH — do I look up one price?
-> **Expert:** No. MOLH is a Customer with two Environments, MPCC_PROD and MOLDB_prod. Each Environment gets its own cost calculation and price; the quote can list both.
+> **Expert:** No. ABCD is a Customer with two Environments, ABCD_PROD and ABCD_TEST. Each Environment gets its own cost calculation and price; the quote can list both.
 > **Dev:** And the 52 codes in the ACV import with no database size?
 > **Expert:** Those are Customers with no measured Environment yet. They exist, but nothing is priceable until an Environment's size is imported.

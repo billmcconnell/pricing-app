@@ -88,12 +88,12 @@ describe('spaceused import', () => {
     expect(body.imports.spaceused?.rowCount).toBe(366);
     expect(body.imports.spaceused?.importedAt).toBeTruthy();
 
-    // MOLH owns two Environments, separately sized.
-    const molh = body.customers.find((c) => c.companyCode === 'MOLH')!;
-    expect(molh.environments).toHaveLength(2);
-    const identifiers = molh.environments.map((e) => e.identifier).sort();
-    expect(identifiers).toEqual(['MOLH_imos_MOLDB_prod', 'MOLH_imos_MPCC_PROD']);
-    expect(molh.environments[0].dbSizeGb).not.toBe(molh.environments[1].dbSizeGb);
+    // ABCD owns two Environments, separately sized.
+    const abcd = body.customers.find((c) => c.companyCode === 'ABCD')!;
+    expect(abcd.environments).toHaveLength(2);
+    const identifiers = abcd.environments.map((e) => e.identifier).sort();
+    expect(identifiers).toEqual(['ABCD_SaaS_PROD', 'ABCD_SaaS_TEST']);
+    expect(abcd.environments[0].dbSizeGb).not.toBe(abcd.environments[1].dbSizeGb);
   });
 
   it('re-import updates in place; vanished rows are flagged, not deleted', async () => {
@@ -108,7 +108,7 @@ describe('spaceused import', () => {
     expect(db.select().from(environments).all()).toHaveLength(366);
 
     // Modified feed: OTQV grows, FTQP disappears.
-    const modified = 'Company Code,IMOS DB size\nOTQV,2000000\n';
+    const modified = 'Company Code,SaaS DB size\nOTQV,2000000\n';
     const res = await post('/api/imports/spaceused/commit', 'spaceused.csv', modified);
     const body = res.json() as ImportResponse;
     expect(body.diff.updated).toHaveLength(1);
@@ -131,7 +131,7 @@ describe('spaceused import', () => {
   });
 
   it('a single malformed row rejects the whole file with a per-row report', async () => {
-    const bad = 'Company Code,IMOS DB size\nOTQV,100\nBADCODE99,50\nHCTV,oops\n';
+    const bad = 'Company Code,SaaS DB size\nOTQV,100\nBADCODE99,50\nHCTV,oops\n';
     const res = await post('/api/imports/spaceused/commit', 'spaceused.csv', bad);
     expect(res.statusCode).toBe(422);
     const body = res.json() as { errors: { line: number; message: string }[]; committed: boolean };
@@ -143,15 +143,15 @@ describe('spaceused import', () => {
   it('accepts the same data as xlsx', async () => {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('spaceused');
-    ws.addRow(['Company Code', 'IMOS DB size']);
+    ws.addRow(['Company Code', 'SaaS DB size']);
     ws.addRow(['OTQV', 1003483.3]);
-    ws.addRow(['MOLH_imos_MPCC_PROD', 123456]);
+    ws.addRow(['ABCD_SaaS_PROD', 123456]);
     const buffer = Buffer.from(await wb.xlsx.writeBuffer());
     const res = await post('/api/imports/spaceused/commit', 'spaceused.xlsx', buffer);
     expect(res.statusCode).toBe(200);
     const all = db.select().from(environments).all();
     expect(all).toHaveLength(2);
-    expect(all.find((e) => e.identifier === 'MOLH_imos_MPCC_PROD')!.dbSizeGb).toBeCloseTo(123.456, 6);
+    expect(all.find((e) => e.identifier === 'ABCD_SaaS_PROD')!.dbSizeGb).toBeCloseTo(123.456, 6);
   });
 
   it('rejects unsupported file types', async () => {
