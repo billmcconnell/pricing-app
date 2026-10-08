@@ -8,7 +8,7 @@ The Sales-facing core: search/pick a Customer (by Company Code or Account Name),
 
 Role boundary matters here: Sales sees List Price and the inputs that explain it (DB size, growth), but **not** OPEX, margin, contingency, or any cost breakdown. Admin viewing the same screen may see the full breakdown.
 
-Customers with no priceable Environment (exist commercially, no measured size) appear in search but clearly marked unpriceable — see the example dialogue in CONTEXT.md.
+Customers with no priceable Environment (exist commercially, no measured size) appear in search but clearly marked unpriceable — see the example dialogue in GLOSSARY.md.
 
 ## Acceptance criteria
 

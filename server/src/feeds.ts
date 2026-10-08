@@ -33,7 +33,7 @@ function isHeaderRow(cells: Cell[]): boolean {
 
 /**
  * spaceused feed: identifier + database size in MB. MB→GB conversion happens at
- * this boundary and nowhere else (CONTEXT.md, SaaS DB Size) — callers get GB.
+ * this boundary and nowhere else (GLOSSARY.md, SaaS DB Size) — callers get GB.
  */
 export function parseSpaceused(table: Cell[][]): SpaceusedParse {
   const rows: SpaceusedRow[] = [];

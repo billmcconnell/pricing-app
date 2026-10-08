@@ -11,7 +11,7 @@ Two deliberate deviations from the workbook, both documented in ADRs — do not 
 - List Price = OPEX ÷ (1 − gross margin), margin seeded at 60% — **not** the worksheet's `OPEX × 1.7` markup (ADR-0001)
 - No Value Uplift step (ADR-0002)
 
-Expose a compute endpoint and a minimal Admin-visible form (size + growth in, breakdown out) to prove the path end-to-end. Use CONTEXT.md vocabulary throughout (OPEX, Gross Margin, List Price, Assumption).
+Expose a compute endpoint and a minimal Admin-visible form (size + growth in, breakdown out) to prove the path end-to-end. Use GLOSSARY.md vocabulary throughout (OPEX, Gross Margin, List Price, Assumption).
 
 The base-model formulas to transcribe live in the workbook's Pricing Worksheet (rows 17–49 for the 150 GB base model, rows 100+ for the per-client pipeline). Credit-tier thresholds in the workbook compare grown size in **MB** (90,000/150,000/200,000); the app works in GB.
 

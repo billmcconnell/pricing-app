@@ -140,7 +140,7 @@ export type MultiYearProjection = {
 };
 
 /**
- * Multi-Year Projection (CONTEXT.md): grow the database size and re-run the full
+ * Multi-Year Projection (GLOSSARY.md): grow the database size and re-run the full
  * cost model for each year — never compound the price. Year 1 grows by the
  * Environment's own effective Growth Rate; years 2+ grow by the floor, because a
  * ramp-up trend is not a steady state.

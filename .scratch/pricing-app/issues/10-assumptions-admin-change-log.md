@@ -4,7 +4,7 @@ Status: done
 
 ## What to build
 
-The Admin screen for every **Assumption** in the model, grouped as in CONTEXT.md: unit costs (Snowflake credit price, S3/DMS rates…), behavioral assumptions (turnover, contingency, growth floor), and commercial policy (gross margin, price floor, credit tiers, add-on rates and floors, guardrail threshold, rounding). Each Assumption displays a human description — the workbook's margin-vs-markup confusion happened partly because constants lived unlabeled in cells (ADR-0001).
+The Admin screen for every **Assumption** in the model, grouped as in GLOSSARY.md: unit costs (Snowflake credit price, S3/DMS rates…), behavioral assumptions (turnover, contingency, growth floor), and commercial policy (gross margin, price floor, credit tiers, add-on rates and floors, guardrail threshold, rounding). Each Assumption displays a human description — the workbook's margin-vs-markup confusion happened partly because constants lived unlabeled in cells (ADR-0001).
 
 Every edit appends to a change log (when, which Assumption, old → new) shown on the same screen — this replaces the Excel Change Log tab. No versioning beyond that; quotes are ephemeral and always price from current values.
 

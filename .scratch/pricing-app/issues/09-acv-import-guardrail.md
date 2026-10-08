@@ -4,7 +4,7 @@ Status: done
 
 ## What to build
 
-Admin uploads the ACV feed (Company Code, Account Name, ACV — a Salesforce export). ACV attaches to **Customers**, not Environments, and is consumed only by the **Proportionality Guardrail** (CONTEXT.md): the quote screen shows a warning when List Price exceeds an Admin-set share of the Customer's ACV (Assumption, seeded 25%). It flags, never blocks — the judgment call belongs to Sales. Per ADR-0002 there is no value uplift; ACV must not influence the price itself. Customers in the feed with no Environment are fine (they exist commercially); no User Count feed exists in this app.
+Admin uploads the ACV feed (Company Code, Account Name, ACV — a Salesforce export). ACV attaches to **Customers**, not Environments, and is consumed only by the **Proportionality Guardrail** (GLOSSARY.md): the quote screen shows a warning when List Price exceeds an Admin-set share of the Customer's ACV (Assumption, seeded 25%). It flags, never blocks — the judgment call belongs to Sales. Per ADR-0002 there is no value uplift; ACV must not influence the price itself. Customers in the feed with no Environment are fine (they exist commercially); no User Count feed exists in this app.
 
 ## Acceptance criteria
 

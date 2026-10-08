@@ -4,7 +4,7 @@ Status: done
 
 ## What to build
 
-Email/password authentication with exactly two roles, per CONTEXT.md: **Sales** (sees quotes, never OPEX/margin/contingency) and **Admin** (owns the cost model and imports). Login screen, session handling, role-based route guards on both API and UI. A seeded Admin user so the app is usable immediately after setup; Admin can create further users of either role.
+Email/password authentication with exactly two roles, per GLOSSARY.md: **Sales** (sees quotes, never OPEX/margin/contingency) and **Admin** (owns the cost model and imports). Login screen, session handling, role-based route guards on both API and UI. A seeded Admin user so the app is usable immediately after setup; Admin can create further users of either role.
 
 ## Acceptance criteria
 

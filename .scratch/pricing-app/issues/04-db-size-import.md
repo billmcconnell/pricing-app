@@ -4,7 +4,7 @@ Status: done
 
 ## What to build
 
-Admin uploads the `spaceused` export (CSV or xlsx: identifier + database size). The import creates/updates **Customers** (4-letter Company Code) and their **Environments**, converting size from **MB to GB at the import boundary** — the only place that conversion ever happens (see CONTEXT.md, IMOS DB Size). Most rows are a bare Company Code (one Environment, 1:1); some rows are full environment names like `MOLH_imos_MPCC_PROD` — the same Customer can own several Environments and each is priced separately.
+Admin uploads the `spaceused` export (CSV or xlsx: identifier + database size). The import creates/updates **Customers** (4-letter Company Code) and their **Environments**, converting size from **MB to GB at the import boundary** — the only place that conversion ever happens (see GLOSSARY.md, IMOS DB Size). Most rows are a bare Company Code (one Environment, 1:1); some rows are full environment names like `MOLH_imos_MPCC_PROD` — the same Customer can own several Environments and each is priced separately.
 
 Admin UI: upload, a preview/confirmation of what will change, and a browsable Customer/Environment list showing sizes and when the feed was last imported, with a staleness warning past an age threshold.
 
@@ -29,7 +29,7 @@ Implemented 2026-07-12. Notes and decisions:
 
 - **Schema**: `customers` (companyCode unique, accountName), `environments` (identifier unique — the raw feed identifier, bare code or full name like `MOLH_imos_MPCC_PROD`; dbSizeGb; missingFromLastImport flag), `imports` (feed, importedAt, rowCount, filename).
 - **MB→GB is ÷1000** (matches the workbook's `/150/1000` multiplier), applied only in the import layer.
-- **Exact counts from the current workbook**: 367 spaceused rows contain a duplicate bare `EVSG` → **366 Environments**. Duplicates within a file are first-occurrence-wins (matching Excel VLOOKUP behavior) with a preview warning. The cheat sheet's 378 rows contain 5 duplicate codes (EVSG, IXCP, NMAP, MNDU, EKPW) → **373 named Customers**. After both imports: 417 Customers, of which 52 have no Environment — exactly the "52 codes with no database size" from CONTEXT.md.
+- **Exact counts from the current workbook**: 367 spaceused rows contain a duplicate bare `EVSG` → **366 Environments**. Duplicates within a file are first-occurrence-wins (matching Excel VLOOKUP behavior) with a preview warning. The cheat sheet's 378 rows contain 5 duplicate codes (EVSG, IXCP, NMAP, MNDU, EKPW) → **373 named Customers**. After both imports: 417 Customers, of which 52 have no Environment — exactly the "52 codes with no database size" from GLOSSARY.md.
 - **Account names** are a second upload on the same screen (the issue offered either option). Column order is auto-detected per row; Customers not in the spaceused feed are created (they exist commercially, unpriceable).
 - **Flow**: preview and commit are separate endpoints taking the same multipart file; commit runs in one transaction. Any malformed row → 422 with per-row errors, nothing committed. Disappeared identifiers are flagged `missingFromLastImport` (cleared if they return); never deleted.
 - **Formats**: CSV (hand-rolled parser with quoting) and xlsx (exceljs — chosen over SheetJS's npm package, which is stale and has known vulnerabilities). Fixtures in `server/test/fixtures/` are the real workbook data extracted once.

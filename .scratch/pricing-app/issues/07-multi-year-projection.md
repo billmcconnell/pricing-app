@@ -4,7 +4,7 @@ Status: done
 
 ## What to build
 
-Add the **Multi-Year Projection** to the quote screen: a number-of-years input (default 5). Per CONTEXT.md, the projection grows the Environment's database size and re-runs the full cost model for each year — never compounds the price. Year 1 grows by the Environment's own effective Growth Rate; years 2+ grow by the floor rate (a ramp-up trend is not a steady state). Show a per-year breakdown (projected size + that year's List Price) and the total.
+Add the **Multi-Year Projection** to the quote screen: a number-of-years input (default 5). Per GLOSSARY.md, the projection grows the Environment's database size and re-runs the full cost model for each year — never compounds the price. Year 1 grows by the Environment's own effective Growth Rate; years 2+ grow by the floor rate (a ramp-up trend is not a steady state). Show a per-year breakdown (projected size + that year's List Price) and the total.
 
 ## Acceptance criteria
 

@@ -7,7 +7,7 @@ This protoype replaces a preceding "Data Lake Pricing Dashboard" Excel workbook 
 - **Sales** use the quote screen: List Price, options, and multi-year totals. OPEX, margin, and contingency are never shown to them.
 - **Admins** own the cost model: they edit assumptions and price floors, import data feeds, and review the change log.
 
-Prices are derived from OPEX grossed up to a target gross margin, not marked up (see [ADR-0001](docs/adr/0001-price-by-gross-margin-not-markup.md)). The domain vocabulary (Environment, Customer, Growth Rate, List Price, etc.) is defined in [CONTEXT.md](CONTEXT.md).
+Prices are derived from OPEX grossed up to a target gross margin, not marked up (see [ADR-0001](docs/adr/0001-price-by-gross-margin-not-markup.md)). The domain vocabulary (Environment, Customer, Growth Rate, List Price, etc.) is defined in [GLOSSARY.md](GLOSSARY.md).
 
 ## Stack
 
@@ -59,6 +59,6 @@ Margin and ACV data are made up numbers but normally would be considered highly 
 
 ## Documentation
 
-- [CONTEXT.md](CONTEXT.md): domain glossary
+- [GLOSSARY.md](GLOSSARY.md): domain glossary
 - [docs/adr/](docs/adr/): architecture and pricing decisions
 - [docs/deploy.md](docs/deploy.md): deployment runbook

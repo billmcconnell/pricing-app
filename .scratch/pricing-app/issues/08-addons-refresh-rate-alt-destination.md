@@ -4,7 +4,7 @@ Status: ready-for-agent
 
 ## What to build
 
-Quote screen options, per CONTEXT.md: a **Refresh Rate** picker (30 Minutes included / 15 Minutes / 1 Minute — the 10-Minute option is retired) and an **Alternative Destination** toggle (flat price, Assumption seeded $15,000).
+Quote screen options, per GLOSSARY.md: a **Refresh Rate** picker (30 Minutes included / 15 Minutes / 1 Minute — the 10-Minute option is retired) and an **Alternative Destination** toggle (flat price, Assumption seeded $15,000).
 
 **Accelerated Updates** are priced from an explicit $/GB/yr Assumption applied to the Environment's grown size — deliberately not the workbook's live comparison against the RTEU reference client. Seed the 1-Minute rate by freezing that anchor once: 18,750 ÷ RTEU's grown DB size (GB) from the current workbook data. The 15-Minute price is a multiplier Assumption (seeded 50%) on the 1-Minute price; per-tier floors are Assumptions (seeded $18,000 / $9,000).
 
